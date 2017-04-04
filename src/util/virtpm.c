@@ -52,6 +52,8 @@ static char *swtpm_cuse;
 static char *swtpm_setup;
 static char *swtpm_ioctl;
 
+static bool swtpm_supports_tpm2;
+
 /**
  * virTPMCreateCancelPath:
  * @devpath: Path to the TPM device
@@ -95,6 +97,40 @@ virTPMCreateCancelPath(const char *devpath)
 
  cleanup:
     return path;
+}
+
+/*
+ * virTPMCheckForTPM2Support
+ *
+ * Check whether swtpm_setup supports TPM 2
+ */
+static void
+virTPMCheckForTPM2Support(void)
+{
+    virCommandPtr cmd;
+    char *help = NULL;
+
+    if (!swtpm_setup)
+        return;
+
+    cmd = virCommandNew(swtpm_setup);
+    if (!cmd)
+        return;
+
+    virCommandAddArg(cmd, "--help");
+    virCommandSetOutputBuffer(cmd, &help);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (strstr(help, "--tpm2")) {
+        fprintf(stderr, "TPM2 is supported by swtpm_setup\n");
+        swtpm_supports_tpm2 = true;
+    }
+
+ cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(help);
 }
 
 /*
@@ -146,6 +182,7 @@ virTPMCuseInit(void)
             VIR_FREE(swtpm_setup);
             return -1;
         }
+        virTPMCheckForTPM2Support();
     }
 
     if (!swtpm_ioctl) {
@@ -379,13 +416,14 @@ virTPMTryConnect(const char *pathname, unsigned long timeout_ms)
  * @logfile: The file to write the log into; it must be writable
  *           for the user given by userid or 'tss'
  * @pwdfile: Path to file containing the TPM state encryption passphrase
+ * @tpmversion: The version of the TPM, either a TPM 1.2 or TPM 2
  *
  * Setup the external CUSE TPM
  */
 static int
 virTPMSetupCuseTPM(const char *storagepath, const unsigned char *vmuuid,
                    const char *userid, const char *logfile,
-                   const char *pwdfile)
+                   const char *pwdfile, const virDomainTPMVersion tpmversion)
 {
     virCommandPtr cmd = NULL;
     int exitstatus;
@@ -404,6 +442,17 @@ virTPMSetupCuseTPM(const char *storagepath, const unsigned char *vmuuid,
         virCommandAddArgList(cmd, "--runas", userid, NULL);
     if (pwdfile)
         virCommandAddArgList(cmd, "--pwdfile", pwdfile, NULL);
+    switch (tpmversion) {
+    case VIR_DOMAIN_TPM_VERSION_1_2:
+        break;
+    case VIR_DOMAIN_TPM_VERSION_2:
+        virCommandAddArgList(cmd, "--tpm2", NULL);
+        if (!swtpm_supports_tpm2) {
+            fprintf(stderr, "SKIPPING swtpm_setup for tpm2 for now!\n");
+            goto cleanup;
+        }
+        break;
+    }
     virCommandAddArgList(cmd,
                          "--tpm-state", storagepath,
                          "--vmid", uuid,
@@ -550,7 +599,8 @@ virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
         goto error;
 
     if (created &&
-        virTPMSetupCuseTPM(storagepath, vmuuid, userid, logfile, pwdfile) < 0)
+        virTPMSetupCuseTPM(storagepath, vmuuid, userid, logfile, pwdfile,
+                           tpm->tpmversion) < 0)
         goto error;
 
     if (!(devname = virTPMCreateVTPMDeviceName("", vmuuid)) ||
@@ -586,6 +636,14 @@ virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
     if (pwdfile) {
         virCommandAddArg(cmd, "--key");
         virCommandAddArgFormat(cmd, "pwdfile=%s,remove=true", pwdfile);
+    }
+
+    switch (tpm->tpmversion) {
+    case VIR_DOMAIN_TPM_VERSION_1_2:
+        break;
+    case VIR_DOMAIN_TPM_VERSION_2:
+        virCommandAddArg(cmd, "--tpm2");
+        break;
     }
 
     VIR_FREE(devname);

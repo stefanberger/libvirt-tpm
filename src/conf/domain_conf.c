@@ -9350,7 +9350,7 @@ virDomainSmartcardDefParseXML(xmlNodePtr node,
  * or like this:
  *
  * <tpm model='tpm-tis'>
- *   <backend type='cuse-tpm'>
+ *   <backend type='cuse-tpm' tpmversion='2'>
  *     <encryption format='default'/>
  *   </backend>
  * </tpm>
@@ -9364,6 +9364,7 @@ virDomainTPMDefParseXML(xmlNodePtr node,
     char *path = NULL;
     char *model = NULL;
     char *backend = NULL;
+    char *tpmversion = NULL;
     virDomainTPMDefPtr def;
     xmlNodePtr save = ctxt->node;
     xmlNodePtr *backends = NULL;
@@ -9414,6 +9415,17 @@ virDomainTPMDefParseXML(xmlNodePtr node,
         goto error;
     }
 
+    tpmversion = virXMLPropString(backends[0], "tpmversion");
+    if (!tpmversion || STREQ(tpmversion, "1.2")) {
+        def->tpmversion = VIR_DOMAIN_TPM_VERSION_1_2;
+    } else if (STREQ(tpmversion, "2.0") || STREQ(tpmversion, "2")) {
+        def->tpmversion = VIR_DOMAIN_TPM_VERSION_2;
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported TPM version '%s'"),
+                       tpmversion);
+    }
+
     switch (def->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         path = virXPathString("string(./backend/device/@path)", ctxt);
@@ -9455,6 +9467,7 @@ virDomainTPMDefParseXML(xmlNodePtr node,
     VIR_FREE(model);
     VIR_FREE(backend);
     VIR_FREE(backends);
+    VIR_FREE(tpmversion);
     ctxt->node = save;
     return def;
 
@@ -19314,6 +19327,8 @@ virDomainTPMDefFormat(virBufferPtr buf,
     virBufferAdjustIndent(buf, 2);
     virBufferAsprintf(buf, "<backend type='%s'",
                       virDomainTPMBackendTypeToString(def->type));
+    if (def->tpmversion == VIR_DOMAIN_TPM_VERSION_2)
+        virBufferAddLit(buf, " tpmversion='2'");
     virBufferAdjustIndent(buf, 2);
 
     switch (def->type) {

@@ -3600,6 +3600,19 @@
            <ref name="tpm-cuse-tpm-device"/>
          </group>
        </choice>
+       <choice>
+         <group>
+           <optional>
+             <attribute name="tpmversion">
+               <choice>
+                 <value>1.2</value>
+                 <value>2</value>
+                 <value>2.0</value>
+               </choice>
+             </attribute>
+           </optional>
+         </group>
+       </choice>
     </element>
   </define>
 

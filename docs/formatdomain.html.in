@@ -5834,13 +5834,13 @@ qemu-kvm -net nic,model=? /dev/null
 </pre>
     <p>
      Example: usage of the CUSE-TPM with QEMU with the
-     <code>spapr-vtpm</code> model for PowerPC64
+     <code>spapr-vtpm</code> model for PowerPC64; a TPM 2.0 is being used
     </p>
 <pre>
   ...
   &lt;devices&gt;
     &lt;tpm model='spapr-vtpm'&gt;
-      &lt;backend type='cuse-tpm'&gt;
+      &lt;backend type='cuse-tpm' tpmversion='2'&gt;
         &lt;encryption format='vtpm'&gt;
           &lt;secret type='passphrase' usage='vtpm_example'/&gt;
         &lt;/encryption&gt;
@@ -5871,6 +5871,17 @@ qemu-kvm -net nic,model=? /dev/null
           <li>'passthrough' &mdash; use the host's TPM device</li>
           <li>'cuse-tpm' &mdash; use the CUSE TPM emulator</li>
         </ul>
+        <p>
+          The <code>tpmversion</code> attribute indicates the version
+          of the TPM. By default a TPM 1.2 is created. The following
+          versions are supported:
+        </p>
+        <ul>
+          <li>'1.2' &mdash; create a TPM 1.2</li>
+          <li>'2.0' or '2' &mdash; create a TPM 2</li>
+        </ul>
+        Note that once a certain version of a TPM has been created for
+        a guest, the version must not be changed anymore.
       </dd>
       <dt><code>backend type='passthrough'</code></dt>
       <dd>
