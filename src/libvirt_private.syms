@@ -710,8 +710,8 @@ virNWFilterTestUnassignDef;
 virNWFilterUnlockFilterUpdates;
 virNWFilterUnRegisterCallbackDriver;
 virNWFilterWriteLockFilterUpdates;
+virTPMDeleteCreatedSecret;
 virTPMSetupEncryption;
-
 
 # conf/nwfilter_ipaddrmap.h
 virNWFilterIPAddrMapAddIPAddr;

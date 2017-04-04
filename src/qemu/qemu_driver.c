@@ -98,6 +98,7 @@
 #include "domain_capabilities.h"
 #include "vircgroup.h"
 #include "virnuma.h"
+#include "tpm/virtpm_backend.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -7534,6 +7535,8 @@ qemuDomainUndefineFlags(virDomainPtr dom,
 
     if (virDomainDeleteConfig(cfg->configDir, cfg->autostartDir, vm) < 0)
         goto cleanup;
+
+    virTPMDeleteCreatedSecret(dom->conn, vm->def->uuid);
 
     event = virDomainEventLifecycleNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_UNDEFINED,

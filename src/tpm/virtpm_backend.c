@@ -109,6 +109,47 @@ virTPMSecretCreateUsage(char **dest, const unsigned char *vmuuid)
     return virAsprintf(dest, "vtpm-%s", uuid);
 }
 
+int
+virTPMDeleteCreatedSecret(virConnectPtr conn,
+                          const unsigned char *vmuuid)
+{
+    virSecretPtr secret = NULL;
+    char *usage;
+
+    if (conn->secretDriver == NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("secret driver not supported"));
+        return -1;
+    }
+
+    if (conn->secretDriver->secretLookupByUsage == NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("secret lookup not supported"));
+        return -1;
+    }
+
+    if (conn->secretDriver->secretUndefine == NULL) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("secret undefining not supported"));
+        return -1;
+    }
+
+    if (virTPMSecretCreateUsage(&usage, vmuuid) < 0)
+        return -1;
+
+    secret = conn->secretDriver->secretLookupByUsage(conn,
+                     VIR_SECRET_USAGE_TYPE_VTPM,
+                     usage);
+
+    if (secret)
+        conn->secretDriver->secretUndefine(secret);
+
+    VIR_FREE(usage);
+    virObjectUnref(secret);
+
+    return 0;
+}
+
 static int
 virTPMGenerateEncryption(virConnectPtr conn,
                          virDomainTPMDefPtr tpm,

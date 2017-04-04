@@ -29,4 +29,7 @@ int virTPMSetupEncryption(virConnectPtr conn, virDomainDefPtr def,
                           unsigned char **secret_value,
                           size_t *secret_value_size);
 
+int virTPMDeleteCreatedSecret(virConnectPtr conn,
+                              const unsigned char *vmuuid);
+
 #endif /* __VIR_TPM_BACKEND_H__ */
