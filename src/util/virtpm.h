@@ -1,7 +1,7 @@
 /*
  * virtpm.h: TPM support
  *
- * Copyright (C) 2013 IBM Corporation
+ * Copyright (C) 2013,2018 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,29 @@
 #ifndef __VIR_TPM_H__
 # define __VIR_TPM_H__
 
+# include "vircommand.h"
+
+typedef struct _virDomainTPMDef virDomainTPMDef;
+typedef virDomainTPMDef *virDomainTPMDefPtr;
+
 char *virTPMCreateCancelPath(const char *devpath) ATTRIBUTE_NOINLINE;
+
+int virTPMEmulatorInitPaths(virDomainTPMDefPtr tpm,
+                            const char *swtpmStorageDir,
+                            const char *vmname)
+                          ATTRIBUTE_RETURN_CHECK;
+int virTPMEmulatorPrepareHost(virDomainTPMDefPtr tpm,
+                              const char *logDir, const char *vmname,
+                              uid_t swtpm_user, const char *swtpmStateDir,
+                              uid_t qemu_user)
+                          ATTRIBUTE_RETURN_CHECK;
+virCommandPtr virTPMEmulatorBuildCommand(virDomainTPMDefPtr tpm,
+                                         const char *vmname,
+                                         const unsigned char *vmuuid,
+                                         uid_t swtpm_user)
+                          ATTRIBUTE_RETURN_CHECK;
+void virTPMEmulatorStop(const char *swtpmStateDir,
+                        const char *vmname);
+void virTPMDeleteEmulatorStorage(const char *path);
 
 #endif /* __VIR_TPM_H__ */

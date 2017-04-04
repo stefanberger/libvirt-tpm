@@ -862,7 +862,8 @@ VIR_ENUM_IMPL(virDomainTPMModel, VIR_DOMAIN_TPM_MODEL_LAST,
               "tpm-crb")
 
 VIR_ENUM_IMPL(virDomainTPMBackend, VIR_DOMAIN_TPM_TYPE_LAST,
-              "passthrough")
+              "passthrough",
+              "emulator")
 
 VIR_ENUM_IMPL(virDomainIOMMUModel, VIR_DOMAIN_IOMMU_MODEL_LAST,
               "intel")
@@ -2588,6 +2589,24 @@ void virDomainHostdevDefClear(virDomainHostdevDefPtr def)
     }
 }
 
+void virDomainTPMDelete(virDomainDefPtr def)
+{
+    virDomainTPMDefPtr tpm = def->tpm;
+
+    if (!tpm)
+        return;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        virTPMDeleteEmulatorStorage(tpm->data.emulator.storagepath);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        /* nothing to do */
+        break;
+    }
+}
+
 void virDomainTPMDefFree(virDomainTPMDefPtr def)
 {
     if (!def)
@@ -2596,6 +2615,11 @@ void virDomainTPMDefFree(virDomainTPMDefPtr def)
     switch (def->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         VIR_FREE(def->data.passthrough.source.data.file.path);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        VIR_FREE(def->data.emulator.source.data.nix.path);
+        VIR_FREE(def->data.emulator.storagepath);
+        VIR_FREE(def->data.emulator.logfile);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
@@ -12525,6 +12549,11 @@ virDomainSmartcardDefParseXML(virDomainXMLOptionPtr xmlopt,
  *   </backend>
  * </tpm>
  *
+ * or like this:
+ *
+ * <tpm model='tpm-tis'>
+ *   <backend type='emulator'/>
+ * </tpm>
  */
 static virDomainTPMDefPtr
 virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
@@ -12590,6 +12619,8 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
         def->data.passthrough.source.data.file.path = path;
         def->data.passthrough.source.type = VIR_DOMAIN_CHR_TYPE_DEV;
         path = NULL;
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         goto error;
@@ -24760,24 +24791,32 @@ virDomainTPMDefFormat(virBufferPtr buf,
                       virDomainTPMDefPtr def,
                       unsigned int flags)
 {
+    bool did_nl = false;
+
     virBufferAsprintf(buf, "<tpm model='%s'>\n",
                       virDomainTPMModelTypeToString(def->model));
     virBufferAdjustIndent(buf, 2);
-    virBufferAsprintf(buf, "<backend type='%s'>\n",
+    virBufferAsprintf(buf, "<backend type='%s'",
                       virDomainTPMBackendTypeToString(def->type));
     virBufferAdjustIndent(buf, 2);
 
     switch (def->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        virBufferAddLit(buf, ">\n");
+        did_nl = true;
         virBufferEscapeString(buf, "<device path='%s'/>\n",
                               def->data.passthrough.source.data.file.path);
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
 
     virBufferAdjustIndent(buf, -2);
-    virBufferAddLit(buf, "</backend>\n");
+    if (did_nl)
+        virBufferAddLit(buf, "</backend>\n");
+    else
+        virBufferAddLit(buf, "/>\n");
 
     virDomainDeviceInfoFormat(buf, &def->info, flags);
 
@@ -27547,6 +27586,10 @@ virDomainDeleteConfig(const char *configDir,
                              configFile);
         goto cleanup;
     }
+
+    /* in case domain is NOT running, remove any TPM storage */
+    if (!dom->persistent)
+        virDomainTPMDelete(dom->def);
 
     ret = 0;
 

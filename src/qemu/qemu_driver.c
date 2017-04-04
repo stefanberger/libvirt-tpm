@@ -59,6 +59,7 @@
 #include "qemu_migration.h"
 #include "qemu_blockjob.h"
 #include "qemu_security.h"
+#include "qemu_extdevice.h"
 
 #include "virerror.h"
 #include "virlog.h"
@@ -7365,6 +7366,9 @@ qemuDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
         goto endjob;
     }
 
+    if (qemuExtDevicesInitPaths(driver, vm->def) < 0)
+        goto endjob;
+
     if (qemuDomainObjStart(dom->conn, driver, vm, flags,
                            QEMU_ASYNC_JOB_START) < 0)
         goto endjob;
@@ -7508,6 +7512,9 @@ qemuDomainUndefineFlags(virDomainPtr dom,
     }
 
     if (!(vm = qemuDomObjFromDomain(dom)))
+        return -1;
+
+    if (qemuExtDevicesInitPaths(driver, vm->def) < 0)
         return -1;
 
     cfg = virQEMUDriverGetConfig(driver);

@@ -33,6 +33,7 @@
 #include "qemu_capabilities.h"
 #include "qemu_migration.h"
 #include "qemu_security.h"
+#include "qemu_extdevice.h"
 #include "viralloc.h"
 #include "virlog.h"
 #include "virerror.h"
@@ -7088,6 +7089,8 @@ qemuDomainRemoveInactive(virQEMUDriverPtr driver,
             VIR_WARN("unable to remove snapshot directory %s", snapDir);
         VIR_FREE(snapDir);
     }
+    if (!qemuExtDevicesInitPaths(driver, vm->def))
+        virDomainTPMDelete(vm->def);
 
     virObjectRef(vm);
 
@@ -10280,6 +10283,7 @@ qemuDomainSetupTPM(virQEMUDriverConfigPtr cfg ATTRIBUTE_UNUSED,
             return -1;
         break;
 
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
     case VIR_DOMAIN_TPM_TYPE_LAST:
         /* nada */
         break;

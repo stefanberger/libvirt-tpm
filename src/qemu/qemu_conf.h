@@ -102,7 +102,9 @@ struct _virQEMUDriverConfig {
     char *configDir;
     char *autostartDir;
     char *logDir;
+    char *swtpmLogDir;
     char *stateDir;
+    char *swtpmStateDir;
     /* These two directories are ones QEMU processes use (so must match
      * the QEMU user/group */
     char *libDir;
@@ -111,6 +113,7 @@ struct _virQEMUDriverConfig {
     char *snapshotDir;
     char *channelTargetDir;
     char *nvramDir;
+    char *swtpmStorageDir;
 
     char *defaultTLSx509certdir;
     bool checkdefaultTLSx509certdir;
@@ -206,6 +209,8 @@ struct _virQEMUDriverConfig {
 
     bool vxhsTLS;
     char *vxhsTLSx509certdir;
+
+    uid_t swtpm_user;
 };
 
 /* Main driver state */

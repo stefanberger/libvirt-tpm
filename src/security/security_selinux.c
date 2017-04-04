@@ -1472,6 +1472,12 @@ virSecuritySELinuxSetTPMFileLabel(virSecurityManagerPtr mgr,
             return -1;
         }
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        tpmdev = tpm->data.emulator.source.data.nix.path;
+        rc = virSecuritySELinuxSetFilecon(mgr, tpmdev, seclabel->imagelabel);
+        if (rc < 0)
+            return -1;
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -1505,6 +1511,7 @@ virSecuritySELinuxRestoreTPMFileLabelInt(virSecurityManagerPtr mgr,
             VIR_FREE(cancel_path);
         }
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }

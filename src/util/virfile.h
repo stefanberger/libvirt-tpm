@@ -253,11 +253,13 @@ int virDirRead(DIR *dirp, struct dirent **ent, const char *dirname)
 void virDirClose(DIR **dirp)
     ATTRIBUTE_NONNULL(1);
 # define VIR_DIR_CLOSE(dir)  virDirClose(&(dir))
+int virDirChownFiles(const char *name, uid_t uid, gid_t gid);
 
 int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 int virFileMakePathWithMode(const char *path,
                             mode_t mode) ATTRIBUTE_RETURN_CHECK;
 int virFileMakeParentPath(const char *path) ATTRIBUTE_RETURN_CHECK;
+int virFileDeletePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 
 char *virFileBuildPath(const char *dir,
                        const char *name,

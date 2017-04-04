@@ -467,6 +467,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "virtio-mouse-ccw",
               "virtio-tablet-ccw",
               "tpm-crb",
+              "tpm-emulator",
     );
 
 
@@ -3097,6 +3098,10 @@ static const struct tpmTypeToCaps virQEMUCapsTPMTypesToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_TYPE_PASSTHROUGH,
         .caps = QEMU_CAPS_DEVICE_TPM_PASSTHROUGH,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_TYPE_EMULATOR,
+        .caps = QEMU_CAPS_DEVICE_TPM_EMULATOR,
     },
 };
 

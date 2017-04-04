@@ -451,6 +451,7 @@ typedef enum {
     QEMU_CAPS_DEVICE_VIRTIO_MOUSE_CCW, /* -device virtio-mouse-ccw */
     QEMU_CAPS_DEVICE_VIRTIO_TABLET_CCW, /* -device virtio-tablet-ccw */
     QEMU_CAPS_DEVICE_TPM_CRB, /* -device tpm-crb */
+    QEMU_CAPS_DEVICE_TPM_EMULATOR, /* -tpmdev emulator */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;

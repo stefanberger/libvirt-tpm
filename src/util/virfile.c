@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <dirname.h>
+#include <ftw.h>
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
@@ -2933,6 +2934,54 @@ void virDirClose(DIR **dirp)
     *dirp = NULL;
 }
 
+/*
+ * virDirChownFiles:
+ * @name: name of the directory
+ * @uid: uid
+ * @gid: gid
+ *
+ * Change ownership of all regular files in a directory.
+ *
+ * Returns -1 on error, with error already reported, 0 on success.
+ */
+int virDirChownFiles(const char *name, uid_t uid, gid_t gid)
+{
+    struct dirent *ent;
+    int ret;
+    DIR *dir;
+    char *path;
+
+    if (virDirOpen(&dir, name) < 0)
+        return -1;
+
+    while ((ret = virDirRead(dir, &ent, name)) > 0) {
+        if (ent->d_type != DT_REG)
+            continue;
+
+        if (virAsprintf(&path, "%s/%s", name, ent->d_name) < 0) {
+            ret = -1;
+            break;
+        }
+        if (chown(path, uid, gid) < 0) {
+            ret = -1;
+            virReportSystemError(errno,
+                                 _("cannot chown '%s' to (%u, %u)"),
+                                 ent->d_name, (unsigned int) uid,
+                                 (unsigned int) gid);
+        }
+        VIR_FREE(path);
+        if (ret < 0)
+            break;
+    }
+
+    virDirClose(&dir);
+
+    if (ret < 0)
+        return -1;
+
+    return 0;
+}
+
 static int
 virFileMakePathHelper(char *path, mode_t mode)
 {
@@ -3031,6 +3080,17 @@ virFileMakeParentPath(const char *path)
     return ret;
 }
 
+static int
+_virFileDeletePathCB(const char *fpath, const struct stat *sb ATTRIBUTE_UNUSED,
+                     int typeflag ATTRIBUTE_UNUSED, struct FTW *ftwbuf ATTRIBUTE_UNUSED)
+{
+    return remove(fpath);
+}
+
+int virFileDeletePath(const char *path)
+{
+    return nftw(path, _virFileDeletePathCB, 64, FTW_DEPTH | FTW_PHYS);
+}
 
 /* Build up a fully qualified path for a config file to be
  * associated with a persistent guest or network */

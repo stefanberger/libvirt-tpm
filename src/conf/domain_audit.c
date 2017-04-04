@@ -586,6 +586,8 @@ virDomainAuditTPM(virDomainObjPtr vm, virDomainTPMDefPtr tpm,
                   "virt=%s resrc=dev reason=%s %s uuid=%s %s",
                   virt, reason, vmname, uuidstr, device);
         break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
     default:
         break;

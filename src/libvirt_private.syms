@@ -556,6 +556,7 @@ virDomainTimerTrackTypeToString;
 virDomainTPMBackendTypeFromString;
 virDomainTPMBackendTypeToString;
 virDomainTPMDefFree;
+virDomainTPMDelete;
 virDomainTPMModelTypeFromString;
 virDomainTPMModelTypeToString;
 virDomainUSBDeviceDefForeach;
@@ -1745,6 +1746,7 @@ saferead;
 safewrite;
 safezero;
 virBuildPathInternal;
+virDirChownFiles;
 virDirClose;
 virDirCreate;
 virDirOpen;
@@ -2971,6 +2973,11 @@ virTimeStringThenRaw;
 
 # util/virtpm.h
 virTPMCreateCancelPath;
+virTPMDeleteEmulatorStorage;
+virTPMEmulatorBuildCommand;
+virTPMEmulatorInitPaths;
+virTPMEmulatorPrepareHost;
+virTPMEmulatorStop;
 
 
 # util/virtypedparam.h
