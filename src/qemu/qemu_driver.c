@@ -7404,7 +7404,8 @@ static virDomainPtr qemuDomainDefineXMLFlags(virConnectPtr conn, const char *xml
     }
     vm->persistent = 1;
 
-    if (virDomainSaveConfig(cfg->configDir,
+    if (virDomainCheckDeviceChanges(oldDef, vm->def) < 0 ||
+        virDomainSaveConfig(cfg->configDir,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         if (oldDef) {
             /* There is backup so this VM was defined before.

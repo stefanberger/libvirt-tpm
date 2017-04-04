@@ -146,6 +146,7 @@ virDomainBlockedReasonTypeFromString;
 virDomainBlockedReasonTypeToString;
 virDomainCapabilitiesPolicyTypeToString;
 virDomainCapsFeatureTypeToString;
+virDomainCheckDeviceChanges;
 virDomainChrConsoleTargetTypeFromString;
 virDomainChrConsoleTargetTypeToString;
 virDomainChrDefForeach;

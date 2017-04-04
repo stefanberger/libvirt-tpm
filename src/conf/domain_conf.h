@@ -3086,4 +3086,8 @@ virDomainParseMemory(const char *xpath,
 bool virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
     ATTRIBUTE_NONNULL(1);
 
+int virDomainCheckDeviceChanges(virDomainDefPtr def,
+                                virDomainDefPtr newDef)
+    ATTRIBUTE_NONNULL(1);
+
 #endif /* __DOMAIN_CONF_H */

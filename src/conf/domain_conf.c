@@ -23210,3 +23210,64 @@ virDomainDefNeedsPlacementAdvice(virDomainDefPtr def)
 
     return false;
 }
+
+static int
+virDomainCheckTPMChanges(virDomainDefPtr def,
+                         virDomainDefPtr newDef)
+{
+    int ret = 0;
+    bool oldEnc, newEnc;
+
+    if (!def->tpm)
+        return 0;
+
+    if (!newDef->tpm) {
+        /* TPM removed */
+        virDomainTPMDeleteAny(def);
+    } else {
+        if (newDef->tpm->type != def->tpm->type) {
+            /* type changed */
+            virDomainTPMDeleteAny(def);
+        } else {
+            switch (def->tpm->type) {
+            case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+                ret = virTPMExistsCuseTPMStorage(def->uuid);
+                if (ret < 0)
+                    goto cleanup;
+                if (ret) {
+                    oldEnc = def->tpm->data.cuse.encryption;
+                    newEnc = newDef->tpm->data.cuse.encryption;
+                    if (oldEnc != newEnc) {
+                        /* encryption changed */
+                        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                       _("The CUSE-TPM state exists and the "
+                                       "TPM must be removed from the VM before "
+                                       "encryption can be modified"));
+                        ret = -1;
+                    }
+                }
+            break;
+            case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+            case VIR_DOMAIN_TPM_TYPE_LAST:
+            break;
+            }
+        }
+    }
+
+ cleanup:
+    return ret;
+}
+
+int
+virDomainCheckDeviceChanges(virDomainDefPtr def,
+                            virDomainDefPtr newDef)
+{
+    int ret;
+
+    if (!def || !newDef)
+        return 0;
+
+    ret = virDomainCheckTPMChanges(def, newDef);
+
+    return ret;
+}
