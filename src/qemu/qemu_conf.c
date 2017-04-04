@@ -320,6 +320,9 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         goto error;
 #endif
 
+    if (VIR_STRDUP(cfg->swtpm_cuse_user, "tss") < 0)
+        goto error;
+
     return cfg;
 
  error:
@@ -378,6 +381,7 @@ static void virQEMUDriverConfigDispose(void *obj)
     }
     VIR_FREE(cfg->loader);
     VIR_FREE(cfg->nvram);
+    VIR_FREE(cfg->swtpm_cuse_user);
 }
 
 
@@ -842,6 +846,8 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                 goto cleanup;
         }
     }
+
+    GET_VALUE_STR("swtpm_cuse_user", cfg->swtpm_cuse_user);
 
     ret = 0;
 

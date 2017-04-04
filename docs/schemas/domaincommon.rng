@@ -3592,6 +3592,11 @@
            </attribute>
            <ref name="tpm-passthrough-device"/>
          </group>
+         <group>
+           <attribute name="type">
+              <value>cuse-tpm</value>
+           </attribute>
+         </group>
        </choice>
     </element>
   </define>

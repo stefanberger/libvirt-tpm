@@ -6481,6 +6481,7 @@ qemuBuildRNGDevStr(virDomainDefPtr def,
 
 
 static char *qemuBuildTPMBackendStr(const virDomainDef *def,
+                                    virQEMUDriverPtr driver,
                                     virCommandPtr cmd,
                                     virQEMUCapsPtr qemuCaps,
                                     const char *emulator,
@@ -6488,12 +6489,22 @@ static char *qemuBuildTPMBackendStr(const virDomainDef *def,
 {
     const virDomainTPMDef *tpm = def->tpm;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    const char *type = virDomainTPMBackendTypeToString(tpm->type);
+    const char *type = NULL;
     char *cancel_path = NULL, *devset = NULL;
     const char *tpmdev;
+    virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
     *tpmfd = -1;
     *cancelfd = -1;
+
+    switch (tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        type = virDomainTPMBackendTypeToString(tpm->type);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        goto error;
+    }
 
     virBufferAsprintf(&buf, "%s,id=tpm-%s", type, tpm->info.alias);
 
@@ -6545,12 +6556,48 @@ static char *qemuBuildTPMBackendStr(const virDomainDef *def,
         VIR_FREE(cancel_path);
 
         break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        if (!virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_TPM_CUSE_TPM))
+            goto no_support;
+
+        tpmdev = tpm->data.cuse.source.data.file.path;
+        if (!tpmdev) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("CUSE TPM character device is not set"));
+            goto error;
+        }
+
+        if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_ADD_FD)) {
+            *tpmfd = open(tpmdev, O_RDWR);
+            if (*tpmfd < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Could not open TPM device %s"), tpmdev);
+                goto error;
+            }
+
+            virCommandPassFD(cmd, *tpmfd,
+                             VIR_COMMAND_PASS_FD_CLOSE_PARENT);
+            devset = qemuVirCommandGetDevSet(cmd, *tpmfd);
+            if (devset == NULL)
+                goto error;
+
+            virBufferAddLit(&buf, ",path=");
+            virBufferEscape(&buf, ',', ",", "%s", devset);
+            VIR_FREE(devset);
+        } else {
+            virBufferAddLit(&buf, ",path=");
+            virBufferEscape(&buf, ',', ",", "%s", tpmdev);
+        }
+
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         goto error;
     }
 
     if (virBufferCheckError(&buf) < 0)
         goto error;
+
+    virObjectUnref(cfg);
 
     return virBufferContentAndReset(&buf);
 
@@ -6565,6 +6612,7 @@ static char *qemuBuildTPMBackendStr(const virDomainDef *def,
     VIR_FREE(cancel_path);
 
     virBufferFreeAndReset(&buf);
+    virObjectUnref(cfg);
     return NULL;
 }
 
@@ -8413,7 +8461,8 @@ qemuBuildDomainLoaderCommandLine(virCommandPtr cmd,
 }
 
 static int
-qemuBuildTPMCommandLine(virDomainDefPtr def,
+qemuBuildTPMCommandLine(virQEMUDriverPtr driver,
+                        virDomainDefPtr def,
                         virCommandPtr cmd,
                         virQEMUCapsPtr qemuCaps,
                         const char *emulator)
@@ -8423,8 +8472,8 @@ qemuBuildTPMCommandLine(virDomainDefPtr def,
     int cancelfd = -1;
     char *fdset;
 
-    if (!(optstr = qemuBuildTPMBackendStr(def, cmd, qemuCaps, emulator,
-                                          &tpmfd, &cancelfd)))
+    if (!(optstr = qemuBuildTPMBackendStr(def, driver, cmd, qemuCaps,
+                                          emulator, &tpmfd, &cancelfd)))
         return -1;
 
     virCommandAddArgList(cmd, "-tpmdev", optstr, NULL);
@@ -9916,7 +9965,7 @@ qemuBuildCommandLine(virConnectPtr conn,
     }
 
     if (def->tpm) {
-        if (qemuBuildTPMCommandLine(def, cmd, qemuCaps, emulator) < 0)
+        if (qemuBuildTPMCommandLine(driver, def, cmd, qemuCaps, emulator) < 0)
             goto error;
     }
 

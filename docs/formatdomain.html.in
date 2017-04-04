@@ -5725,6 +5725,25 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/devices&gt;
   ...
 </pre>
+    <p>
+      The cuse-tpm device type gives access to a TPM emulator providing
+      TPM functionlity through a character device. With
+      the cuse-tpm device type each guest gets its own private TPM.
+      <span class="since">'cuse-tpm' since 1.x.y</span>
+    </p>
+    <p>
+     Example: usage of the CUSE-TPM
+    </p>
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;tpm model='tpm-tis'&gt;
+      &lt;backend type='cuse-tpm'&gt;
+      &lt;/backend&gt;
+    &lt;/tpm&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
     <dl>
       <dt><code>model</code></dt>
       <dd>
@@ -5826,7 +5845,8 @@ qemu-kvm -net nic,model=? /dev/null
           TPM device. The following types are supported:
         </p>
         <ul>
-          <li>'passthrough' &mdash; use the host's TPM device.</li>
+          <li>'passthrough' &mdash; use the host's TPM device</li>
+          <li>'cuse-tpm' &mdash; use the CUSE TPM emulator</li>
         </ul>
       </dd>
       <dt><code>backend type='passthrough'</code></dt>
@@ -5837,6 +5857,14 @@ qemu-kvm -net nic,model=? /dev/null
           An example for such a device is /dev/tpm0. The filename is
           specified as path attribute of the <code>source</code> element.
           If no file name is specified then /dev/tpm0 is automatically used.
+        </p>
+      </dd>
+      <dt><code>backend type='cuse-tpm'</code></dt>
+      <dd>
+        <p>
+          For this backend type the CUSE TPM must be installed on the
+          host. Libvirt will automatically start an independent CUSE TPM
+          for each QEMU guest requesting access to it.
         </p>
       </dd>
     </dl>

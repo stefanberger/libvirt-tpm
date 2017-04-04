@@ -191,6 +191,10 @@ qemuSetupTPMCgroup(virDomainDefPtr def,
         ret = qemuSetupChrSourceCgroup(def, &dev->data.passthrough.source,
                                        opaque);
         break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        ret = qemuSetupChrSourceCgroup(def, &dev->data.cuse.source,
+                                       opaque);
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }

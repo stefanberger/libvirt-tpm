@@ -447,6 +447,7 @@ virDomainTimerTrackTypeToString;
 virDomainTPMBackendTypeFromString;
 virDomainTPMBackendTypeToString;
 virDomainTPMDefFree;
+virDomainTPMDelete;
 virDomainTPMModelTypeFromString;
 virDomainTPMModelTypeToString;
 virDomainVideoDefaultRAM;
@@ -1415,6 +1416,7 @@ virFileStripSuffix;
 virFileTouch;
 virFileUnlock;
 virFileUpdatePerm;
+virFileWaitAvailable;
 virFileWaitForDevices;
 virFileWrapperFdClose;
 virFileWrapperFdFree;
@@ -2225,6 +2227,10 @@ virTimeStringThenRaw;
 
 # util/virtpm.h
 virTPMCreateCancelPath;
+virTPMCuseTPMBuildCommand;
+virTPMDeleteCuseTPMStorage;
+virTPMStopCuseTPM;
+virTPMTryConnect;
 
 
 # util/virtypedparam.h

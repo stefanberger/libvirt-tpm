@@ -22,15 +22,35 @@
 
 #include <config.h>
 
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cap-ng.h>
 
+#include "domain_conf.h"
+#include "viralloc.h"
+#include "vircommand.h"
 #include "virstring.h"
 #include "virerror.h"
 #include "viralloc.h"
 #include "virfile.h"
+#include "virkmod.h"
+#include "virlog.h"
 #include "virtpm.h"
+#include "virutil.h"
+#include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
+
+VIR_LOG_INIT("util.tpm")
+
+/*
+ * executables for the CUSE TPM; to be found on the host
+ */
+static char *swtpm_cuse;
+static char *swtpm_setup;
+static char *swtpm_ioctl;
 
 /**
  * virTPMCreateCancelPath:
@@ -75,4 +95,440 @@ virTPMCreateCancelPath(const char *devpath)
 
  cleanup:
     return path;
+}
+
+/*
+ * virTPMCuseInit
+ *
+ * Initialize the CUSE TPM functions by searching for necessary
+ * executables that we will use to start and setup the CUSE TPM
+ */
+static int
+virTPMCuseInit(void)
+{
+    char *errbuf = NULL;
+
+    if (!swtpm_cuse) {
+        swtpm_cuse = virFindFileInPath("swtpm_cuse");
+        if (!swtpm_cuse) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Could not find CUSE TPM 'swtpm_cuse' in PATH"));
+            return -1;
+        }
+        if (!virFileIsExecutable(swtpm_cuse)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CUSE TPM %s is not an executable"),
+                           swtpm_cuse);
+            VIR_FREE(swtpm_cuse);
+            return -1;
+        }
+    }
+
+    if (swtpm_cuse) {
+        if ((errbuf = virKModLoad("cuse", true))) {
+            /* non fatal in case it's built-in */
+            VIR_WARN("Is cuse module built-in? failed to load cuse module : %s", errbuf);
+            VIR_FREE(errbuf);
+        }
+    }
+
+    if (!swtpm_setup) {
+        swtpm_setup = virFindFileInPath("swtpm_setup");
+        if (!swtpm_setup) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Could not find 'swtpm_setup' in PATH"));
+            return -1;
+        }
+        if (!virFileIsExecutable(swtpm_setup)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("'%s' is not an executable"),
+                           swtpm_setup);
+            VIR_FREE(swtpm_setup);
+            return -1;
+        }
+    }
+
+    if (!swtpm_ioctl) {
+        swtpm_ioctl = virFindFileInPath("swtpm_ioctl");
+        if (!swtpm_ioctl) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Could not find TPM IOCTL swtpm_ioctl in PATH"));
+            return -1;
+        }
+        if (!virFileIsExecutable(swtpm_ioctl)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CUSE TPM ioctl program %s is not an executable"),
+                           swtpm_ioctl);
+            VIR_FREE(swtpm_ioctl);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/*
+ * virTPMCreateCuseTPMStoragePath
+ *
+ * @vmuuid: The UUID of the VM for which to create the storage;
+ *          may be NULL
+ * @suffix: A suffix to append to the storage path; this can be
+ *          used to create a file path
+ *
+ * Create the CUSE TPM's storage path
+ */
+static char *
+virTPMCreateCuseTPMStoragePath(const unsigned char *vmuuid,
+                               const char *suffix)
+{
+    char *path = NULL;
+    char uuid[VIR_UUID_STRING_BUFLEN];
+
+    if (vmuuid)
+        virUUIDFormat(vmuuid, uuid);
+    else
+        uuid[0] = '\0';
+
+    if (virAsprintf(&path,
+                    "%s/lib/libvirt/tpm/%s%s",
+                    LOCALSTATEDIR, uuid, suffix) < 0)
+        virReportOOMError();
+
+    return path;
+}
+
+/*
+ * virTPMCuseInitStorage
+ *
+ * Initialize the CUSE TPM storage by creating its root directory,
+ * which is typically found in /var/lib/libvirt/tpm.
+ *
+ */
+static int
+virTPMCuseInitStorage(void)
+{
+    char *path = NULL;
+    int rc = 0;
+
+    if (!(path = virTPMCreateCuseTPMStoragePath(NULL, "")))
+        return -1;
+
+    if (virFileExists(path))
+        goto cleanup;
+
+    /* allow others to cd into this dir */
+    if (virFileMakePathWithMode(path, 0711) < 0) {
+        virReportSystemError(errno,
+                             _("Could not create TPM directory %s"),
+                             path);
+        rc = -1;
+    }
+
+ cleanup:
+    VIR_FREE(path);
+
+    return rc;
+}
+
+/*
+ * virTPMCreateCuseTPMStorage
+ *
+ * @vmuuid: The UUID of the VM
+ * @created: a pointer to a bool that will be set to true if the
+ *           storage was created because it did not exist yet
+ * @userid: The userid that needs to be able to access the directory
+ *
+ * Unless the storage path for the CUSE TPM for the given VM
+ * already exists, create it and make it accessible for the given userid.
+ */
+static char *
+virTPMCreateCuseTPMStorage(const unsigned char *vmuuid, bool *created,
+                           const char *userid)
+{
+    char *path;
+    uid_t uid;
+    gid_t gid;
+    mode_t mode;
+
+    if (virTPMCuseInitStorage() < 0)
+        return NULL;
+
+    *created = false;
+
+    if (!(path = virTPMCreateCuseTPMStoragePath(vmuuid, "")))
+        return NULL;
+
+    if (virFileExists(path))
+        goto exit;
+
+    *created = true;
+
+    if (virGetUserID(userid, &uid) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get uid for user %s"),
+                       userid);
+        VIR_FREE(path);
+        goto exit;
+    }
+
+    if (virGetGroupID(userid, &gid) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get gid for group %s"),
+                       userid);
+        VIR_FREE(path);
+        goto exit;
+    }
+
+    mode = S_IRUSR | S_IWUSR | S_IXUSR;
+
+    if (virDirCreate(path, mode, uid, gid, 0) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not create directory %s as user %s"),
+                       path, userid);
+        VIR_FREE(path);
+    }
+
+ exit:
+    return path;
+}
+
+void
+virTPMDeleteCuseTPMStorage(const unsigned char *vmuuid)
+{
+    char *path;
+
+    if (!(path = virTPMCreateCuseTPMStoragePath(vmuuid, "")))
+        return;
+
+    ignore_value(virFileDeletePath(path));
+    VIR_FREE(path);
+}
+
+
+/*
+ * virTPMCreateVTPMDeviceName:
+ *
+ * @prefix: a prefix to prepend
+ * @uuid: the UUID of the VM
+ *
+ * Create the vTPM device name from the given parameters
+ */
+static char *
+virTPMCreateVTPMDeviceName(const char *prefix, unsigned const char *vmuuid)
+{
+    char *p;
+    char uuid[VIR_UUID_STRING_BUFLEN];
+
+    virUUIDFormat(vmuuid, uuid);
+    if (virAsprintf(&p, "%svtpm-%s", prefix, uuid) < 0)
+        virReportOOMError();
+
+    return p;
+}
+
+/*
+ * virTPMTryConnect
+ *
+ * @pathname: The device pathname to try to open()
+ * @timeout_ms: The time in ms to spend trying to connect
+ *
+ * Try to connect to the given device pathname using open().
+ */
+int
+virTPMTryConnect(const char *pathname, unsigned long timeout_ms)
+{
+    return virFileWaitAvailable(pathname, timeout_ms);
+}
+
+/*
+ * virTPMSetupCuseTPM
+ *
+ * @storagepath: path to the directory for TPM state
+ * @vmuuid: the UUID of the VM
+ * @userid: The userid to switch to when setting up the TPM;
+ *          typically this should be 'tss'
+ * @logfile: The file to write the log into; it must be writable
+ *           for the user given by userid or 'tss'
+ *
+ * Setup the external CUSE TPM
+ */
+static int
+virTPMSetupCuseTPM(const char *storagepath, const unsigned char *vmuuid,
+                   const char *userid, const char *logfile)
+{
+    virCommandPtr cmd = NULL;
+    int exitstatus;
+    int rc = 0;
+    char uuid[VIR_UUID_STRING_BUFLEN];
+
+    cmd = virCommandNew(swtpm_setup);
+    if (!cmd) {
+        rc = -1;
+        goto cleanup;
+    }
+
+    virUUIDFormat(vmuuid, uuid);
+
+    if (userid)
+        virCommandAddArgList(cmd, "--runas", userid, NULL);
+    virCommandAddArgList(cmd,
+                         "--tpm-state", storagepath,
+                         "--vmid", uuid,
+                         "--logfile", logfile,
+                         "--createek",
+                         "--create-ek-cert",
+                         "--create-platform-cert",
+                         "--lock-nvram",
+                         NULL);
+
+    virCommandClearCaps(cmd);
+
+    if (virCommandRun(cmd, &exitstatus) < 0 || exitstatus != 0) {
+        /* copy the log to libvirt error since the log will be deleted */
+        char *buffer = NULL;
+        ignore_value(virFileReadAllQuiet(logfile, 10240, &buffer));
+        VIR_ERROR(_("Error setting up CUSE TPM:\n%s"), buffer);
+        VIR_FREE(buffer);
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not run '%s'. exitstatus: %d; "
+                         "please check the libvirt error log"),
+                       swtpm_setup, exitstatus);
+        rc = -1;
+    }
+    virCommandFree(cmd);
+
+ cleanup:
+
+    return rc;
+}
+
+/*
+ * virTPMBuildCuseTPMCommand
+ *
+ * @tpm: TPM definition
+ * @vmuuid: The UUID of the VM
+ * @userid: The user id to use for the CUSE TPM to drop priviliges to
+ *
+ * Create the virCommand use for starting the CUSE TPM
+ * Do some initializations on the way, such as creation of storage
+ * and CUSE TPM setup.
+ */
+virCommandPtr
+virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
+                          const char *userid)
+{
+    virCommandPtr cmd = NULL;
+    char *storagepath = NULL;
+    char *logfile = NULL;
+    char *devname = NULL;
+    bool created = false;
+
+    if (virTPMCuseInit() < 0)
+        return NULL;
+
+    if (!(storagepath = virTPMCreateCuseTPMStorage(vmuuid, &created, userid)))
+        return NULL;
+
+    /* create logfile in dir where user creating the state will have access */
+    if (!(logfile = virTPMCreateCuseTPMStoragePath(vmuuid, "/vtpm.log")))
+        goto error;
+
+    if (created &&
+        virTPMSetupCuseTPM(storagepath, vmuuid, userid, logfile) < 0)
+        goto error;
+
+    if (!(devname = virTPMCreateVTPMDeviceName("", vmuuid)) ||
+        !(tpm->data.cuse.source.data.file.path =
+          virTPMCreateVTPMDeviceName("/dev/", vmuuid)))
+        goto error;
+
+    tpm->data.cuse.source.type = VIR_DOMAIN_CHR_TYPE_DEV;
+
+    cmd = virCommandNew(swtpm_cuse);
+    if (!cmd)
+        goto error;
+
+    virCommandClearCaps(cmd);
+
+    virCommandAddArgFormat(cmd, "-n %s", devname);
+
+    virCommandAddArg(cmd, "--tpmstate");
+    virCommandAddArgFormat(cmd, "dir=%s", storagepath);
+
+    virCommandAddArg(cmd, "--log");
+    virCommandAddArgFormat(cmd, "file=%s", logfile);
+
+    /* allow process to open logfile by root before dropping privileges */
+    virCommandAllowCap(cmd, CAP_DAC_OVERRIDE);
+
+    if (userid && !STREQ(userid, "root")) {
+        virCommandAddArgList(cmd, "-r", userid, NULL);
+        virCommandAllowCap(cmd, CAP_SETGID);
+        virCommandAllowCap(cmd, CAP_SETUID);
+    }
+
+    VIR_FREE(storagepath);
+    VIR_FREE(logfile);
+    VIR_FREE(devname);
+
+    return cmd;
+
+ error:
+    if (created)
+        virTPMDeleteCuseTPMStorage(vmuuid);
+
+    VIR_FREE(tpm->data.cuse.source.data.file.path);
+    VIR_FREE(storagepath);
+    VIR_FREE(logfile);
+    VIR_FREE(devname);
+
+    virCommandFree(cmd);
+
+    return NULL;
+}
+
+/*
+ * virTPMStopCuseTPM
+ * @tpm: TPM definition
+ * @vmuuid: the UUID of the VM
+ * @verbose: whether to report errors
+ *
+ * Gracefully stop the external CUSE TPM
+ */
+void
+virTPMStopCuseTPM(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
+                  bool verbose)
+{
+    virCommandPtr cmd;
+    int exitstatus;
+    char *pathname;
+    char *errbuf = NULL;
+
+    if (virTPMCuseInit() < 0)
+        return;
+
+    if (!(pathname = virTPMCreateVTPMDeviceName("/dev/", vmuuid)))
+        return;
+
+    cmd = virCommandNew(swtpm_ioctl);
+
+    virCommandAddArg(cmd, "-s");
+    virCommandAddArg(cmd, pathname);
+
+    VIR_FREE(pathname);
+
+    virCommandSetErrorBuffer(cmd, &errbuf);
+
+    if (virCommandRun(cmd, &exitstatus) < 0 || exitstatus != 0) {
+        if (verbose)
+            VIR_ERROR(_("Could not run swtpm_ioctl -s '%s'."
+                      " existstatus: %d\nstderr: %s"),
+                      swtpm_ioctl, exitstatus, errbuf);
+    }
+
+    virCommandFree(cmd);
+
+    VIR_FREE(tpm->data.cuse.source.data.file.path);
+    VIR_FREE(errbuf);
+    tpm->data.cuse.source.type = 0;
 }

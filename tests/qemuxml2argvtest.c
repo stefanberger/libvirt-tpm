@@ -344,6 +344,19 @@ static int testCompareXMLToArgvFiles(const char *xml,
             goto out;
     }
 
+    if (vmdef->tpm) {
+       switch (vmdef->tpm->type) {
+       case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+           if (VIR_STRDUP(vmdef->tpm->data.cuse.source.data.file.path,
+                          "/dev/test") < 0)
+               goto out;
+           break;
+       case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+       case VIR_DOMAIN_TPM_TYPE_LAST:
+           break;
+       }
+    }
+
     if (!(cmd = qemuBuildCommandLine(conn, &driver, vmdef, &monitor_chr,
                                      (flags & FLAG_JSON), extraFlags,
                                      migrateFrom, migrateFd, NULL,
@@ -1423,6 +1436,9 @@ mymain(void)
             QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
     DO_TEST_PARSE_ERROR("tpm-no-backend-invalid", QEMU_CAPS_DEVICE,
                         QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
+    DO_TEST("tpm-cuse-tpm", QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_CUSE_TPM,
+            QEMU_CAPS_DEVICE_TPM_TIS);
 
     DO_TEST("pci-autoadd-addr", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);
     DO_TEST("pci-autoadd-idx", QEMU_CAPS_DEVICE, QEMU_CAPS_DEVICE_PCI_BRIDGE);

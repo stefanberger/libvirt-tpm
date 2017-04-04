@@ -549,6 +549,8 @@ mymain(void)
     DO_TEST_DIFFERENT("metadata-duplicate");
 
     DO_TEST("tpm-passthrough");
+    DO_TEST("tpm-cuse-tpm");
+
     DO_TEST("pci-bridge");
     DO_TEST_DIFFERENT("pci-bridge-many-disks");
     DO_TEST_DIFFERENT("pci-autoadd-addr");

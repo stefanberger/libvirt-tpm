@@ -893,6 +893,10 @@ virSecurityDACSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
         ret = virSecurityDACSetChardevLabel(mgr, def, NULL,
                                             &tpm->data.passthrough.source);
         break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        ret = virSecurityDACSetChardevLabel(mgr, def, NULL,
+                                            &tpm->data.cuse.source);
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -913,6 +917,9 @@ virSecurityDACRestoreSecurityTPMFileLabel(virSecurityManagerPtr mgr,
         ret = virSecurityDACRestoreChardevLabel(mgr, def, NULL,
                                           &tpm->data.passthrough.source);
         break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        ret = virSecurityDACRestoreChardevLabel(mgr, def, NULL,
+                                          &tpm->data.cuse.source);
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }

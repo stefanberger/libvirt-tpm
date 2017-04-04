@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <dirname.h>
+#include <ftw.h>
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
@@ -2595,6 +2596,17 @@ virFileMakeParentPath(const char *path)
     return ret;
 }
 
+static int
+_virFileDeletePathCB(const char *fpath, const struct stat *sb ATTRIBUTE_UNUSED,
+                     int typeflag ATTRIBUTE_UNUSED, struct FTW *ftwbuf ATTRIBUTE_UNUSED)
+{
+    return remove(fpath);
+}
+
+int virFileDeletePath(const char *path)
+{
+    return nftw(path, _virFileDeletePathCB, 64, FTW_DEPTH | FTW_PHYS);
+}
 
 /* Build up a fully qualified path for a config file to be
  * associated with a persistent guest or network */
@@ -3146,4 +3158,25 @@ int virFileIsSharedFS(const char *path)
                                  VIR_FILE_SHFS_AFS |
                                  VIR_FILE_SHFS_SMB |
                                  VIR_FILE_SHFS_CIFS);
+}
+
+int virFileWaitAvailable(const char *pathname, unsigned long timeout_ms)
+{
+    int rc = -1;
+    int fd;
+    int sleeptime = 250;
+
+    while (timeout_ms > 0) {
+        fd = open(pathname, O_RDWR);
+        if (fd < 0) {
+            timeout_ms -= sleeptime;
+            usleep(sleeptime);
+        } else {
+            VIR_FORCE_CLOSE(fd);
+            rc = 0;
+            break;
+        }
+    }
+
+    return rc;
 }

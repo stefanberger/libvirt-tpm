@@ -43,6 +43,7 @@
 #include "qemu_hotplug.h"
 #include "qemu_migration.h"
 #include "qemu_interface.h"
+#include "qemu_extdevice.h"
 
 #include "cpu/cpu.h"
 #include "datatypes.h"
@@ -4658,6 +4659,9 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
+    if (qemuExtDevicesStart(conn, driver, vm) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Building emulator command line");
     if (!(cmd = qemuBuildCommandLine(conn, driver, vm->def, priv->monConfig,
                                      priv->monJSON, priv->qemuCaps,
@@ -5019,6 +5023,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* We jump here if we failed to start the VM for any reason, or
      * if we failed to initialize the now running VM. kill it off and
      * pretend we never started it */
+    qemuExtDevicesStop(vm);
     VIR_FREE(nodeset);
     virCommandFree(cmd);
     VIR_FORCE_CLOSE(logfile);
@@ -5132,6 +5137,8 @@ void qemuProcessStop(virQEMUDriverPtr driver,
 
     /* Clear network bandwidth */
     virDomainClearNetBandwidth(vm);
+
+    qemuExtDevicesStop(vm);
 
     virDomainConfVMNWFilterTeardown(vm);
 

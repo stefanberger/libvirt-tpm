@@ -13931,6 +13931,19 @@ qemuDomainSnapshotPrepare(virConnectPtr conn,
         goto cleanup;
     }
 
+    if (vm->def->tpm) {
+        switch (vm->def->tpm->type) {
+        case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("attached '%s' TPM does not allow snapshots"),
+                           virDomainTPMBackendTypeToString(vm->def->tpm->type));
+            goto cleanup;
+        case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+        }
+    }
+
     for (i = 0; i < def->ndisks; i++) {
         virDomainSnapshotDiskDefPtr disk = &def->disks[i];
         virDomainDiskDefPtr dom_disk = vm->def->disks[i];

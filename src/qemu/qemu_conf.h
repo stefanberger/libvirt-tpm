@@ -177,6 +177,8 @@ struct _virQEMUDriverConfig {
     char **loader;
     char **nvram;
     size_t nloader;
+
+    char *swtpm_cuse_user;
 };
 
 /* Main driver state */

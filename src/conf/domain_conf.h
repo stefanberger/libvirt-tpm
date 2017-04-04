@@ -1223,6 +1223,7 @@ typedef enum {
 
 typedef enum {
     VIR_DOMAIN_TPM_TYPE_PASSTHROUGH,
+    VIR_DOMAIN_TPM_TYPE_CUSE_TPM,
 
     VIR_DOMAIN_TPM_TYPE_LAST
 } virDomainTPMBackendType;
@@ -1237,6 +1238,9 @@ struct _virDomainTPMDef {
         struct {
             virDomainChrSourceDef source;
         } passthrough;
+        struct {
+            virDomainChrSourceDef source;
+        } cuse;
     } data;
 };
 
@@ -2449,6 +2453,7 @@ void virDomainDefClearPCIAddresses(virDomainDefPtr def);
 void virDomainDefClearCCWAddresses(virDomainDefPtr def);
 void virDomainDefClearDeviceAliases(virDomainDefPtr def);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
+void virDomainTPMDelete(virDomainDefPtr def);
 
 typedef int (*virDomainDeviceInfoCallback)(virDomainDefPtr def,
                                            virDomainDeviceDefPtr dev,

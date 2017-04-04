@@ -1078,6 +1078,12 @@ virSecuritySELinuxSetSecurityTPMFileLabel(virSecurityManagerPtr mgr,
             return -1;
         }
         break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        tpmdev = tpm->data.cuse.source.data.file.path;
+        rc = virSecuritySELinuxSetFilecon(tpmdev, seclabel->imagelabel);
+        if (rc < 0)
+            return -1;
+        break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }
@@ -1111,6 +1117,11 @@ virSecuritySELinuxRestoreSecurityTPMFileLabelInt(virSecurityManagerPtr mgr,
                 rc = -1;
             VIR_FREE(cancel_path);
         }
+        break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        tpmdev = tpm->data.cuse.source.data.file.path;
+        if (tpmdev)
+            rc = virSecuritySELinuxRestoreSecurityFileLabel(mgr, tpmdev);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;

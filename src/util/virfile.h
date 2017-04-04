@@ -235,6 +235,7 @@ int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 int virFileMakePathWithMode(const char *path,
                             mode_t mode) ATTRIBUTE_RETURN_CHECK;
 int virFileMakeParentPath(const char *path) ATTRIBUTE_RETURN_CHECK;
+int virFileDeletePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 
 char *virFileBuildPath(const char *dir,
                        const char *name,
@@ -295,4 +296,6 @@ int virFileGetHugepageSize(const char *path,
                            unsigned long long *size);
 int virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
                          size_t *ret_nfs);
+int virFileWaitAvailable(const char *pathname, unsigned long timeout_ms);
+
 #endif /* __VIR_FILE_H */
