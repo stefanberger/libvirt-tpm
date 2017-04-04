@@ -106,7 +106,8 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
     virTPMStopCuseTPM(tpm, vmuuid, false);
 
     /* setup encryption if needed */
-    if (virTPMSetupEncryption(conn, newDef, cfg->configDir,
+    /* in case of migration newDef is NULL, so we use def then */
+    if (virTPMSetupEncryption(conn, newDef ? newDef : def, cfg->configDir,
                               &secret, &secret_size) < 0)
         goto cleanup;
 

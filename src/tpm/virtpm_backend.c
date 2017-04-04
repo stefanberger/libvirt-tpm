@@ -287,6 +287,7 @@ virTPMSetupEncryption(virConnectPtr conn, virDomainDefPtr def,
     virStorageEncryptionPtr enc = NULL;
     virDomainTPMDefPtr tpm;
     virSecretPtr secret = NULL;
+    int i;
 
     /*
      * in some case def may be NULL; in this case a VM won't be
@@ -305,6 +306,28 @@ virTPMSetupEncryption(virConnectPtr conn, virDomainDefPtr def,
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
+    }
+
+    if (enc) {
+        if (enc->format == VIR_STORAGE_ENCRYPTION_FORMAT_VTPM &&
+            enc->nsecrets > 0) {
+            /*
+             * during migration we need to create a new secret
+             * on the fly
+             */
+            secret = virSecretLookupByUUID(conn, enc->secrets[0]->uuid);
+
+            if (!secret) {
+                for (i = 0; i < enc->nsecrets; i++)
+                    VIR_FREE(enc->secrets[i]);
+                VIR_FREE(enc->secrets);
+                enc->nsecrets = 0;
+                enc->format = VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT;
+            } else {
+                virObjectUnref(secret);
+                secret = NULL;
+            }
+        }
     }
 
     if (enc) {
