@@ -4850,6 +4850,10 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuSetupCgroupForEmulator(driver, vm) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Setting cgroup for external devices (if required)");
+    if (qemuSetupCgroupForExtDevices(vm) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Setting affinity of emulator threads");
     if (qemuProcessSetEmulatorAffinity(vm) < 0)
         goto cleanup;

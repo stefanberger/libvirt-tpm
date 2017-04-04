@@ -65,6 +65,7 @@ int qemuSetupCgroupForVcpu(virDomainObjPtr vm);
 int qemuSetupCgroupForIOThreads(virDomainObjPtr vm);
 int qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
                                virDomainObjPtr vm);
+int qemuSetupCgroupForExtDevices(virDomainObjPtr vm);
 int qemuRemoveCgroup(virQEMUDriverPtr driver, virDomainObjPtr vm);
 int qemuAddToCgroup(virDomainObjPtr vm);
 

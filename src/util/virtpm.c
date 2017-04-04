@@ -564,6 +564,7 @@ virTPMWriteSecretToFile(const char *userid, const unsigned char *secret,
  * @userid: The user id to use for the CUSE TPM to drop priviliges to
  * @secret: The passphrase to use for TPM state encryption
  * @secret_size: The length of the passphrase
+ * @pidfile: The pidfile to use
  *
  * Create the virCommand use for starting the CUSE TPM
  * Do some initializations on the way, such as creation of storage
@@ -573,7 +574,8 @@ virTPMWriteSecretToFile(const char *userid, const unsigned char *secret,
 virCommandPtr
 virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
                           const char *userid,
-                          const unsigned char *secret, size_t secret_size)
+                          const unsigned char *secret, size_t secret_size,
+                          const char *pidfile)
 {
     virCommandPtr cmd = NULL;
     char *storagepath = NULL;
@@ -636,6 +638,11 @@ virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
     if (pwdfile) {
         virCommandAddArg(cmd, "--key");
         virCommandAddArgFormat(cmd, "pwdfile=%s,remove=true", pwdfile);
+    }
+
+    if (pidfile) {
+        virCommandAddArg(cmd, "--pid");
+        virCommandAddArgFormat(cmd, "file=%s", pidfile);
     }
 
     switch (tpm->tpmversion) {

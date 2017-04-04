@@ -1949,6 +1949,7 @@ void virDomainTPMDefFree(virDomainTPMDefPtr def)
         VIR_FREE(def->data.cuse.storagepath);
         VIR_FREE(def->data.cuse.logfile);
         VIR_FREE(def->data.cuse.pwdfile);
+        VIR_FREE(def->data.cuse.pidfile);
         virStorageEncryptionFree(def->data.cuse.encryption);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:

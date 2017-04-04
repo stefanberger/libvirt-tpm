@@ -129,6 +129,7 @@ int virCgroupPathOfController(virCgroupPtr group,
                               char **path);
 
 int virCgroupAddTask(virCgroupPtr group, pid_t pid);
+int virCgroupAddProc(virCgroupPtr group, pid_t pid);
 
 int virCgroupAddTaskController(virCgroupPtr group,
                                pid_t pid,

@@ -1251,6 +1251,7 @@ struct _virDomainTPMDef {
             char *storagepath;
             char *logfile;
             char *pwdfile;
+            char *pidfile;
             virStorageEncryptionPtr encryption;
         } cuse;
     } data;

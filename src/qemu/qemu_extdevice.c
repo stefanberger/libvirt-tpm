@@ -31,10 +31,29 @@
 #include "virtime.h"
 #include "virtpm.h"
 #include "tpm/virtpm_backend.h"
+#include "virpidfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 VIR_LOG_INIT("qemu.qemu_extdevice")
+
+static char *
+virExtDevicePidFileBuild(const char *stateDir,
+                         const char *vmname,
+                         const char *device)
+{
+    char *pidfile = NULL;
+    char *devname = NULL;
+
+    if (virAsprintf(&devname, "%s-%s", vmname, device) < 0)
+        return NULL;
+
+    pidfile = virPidFileBuildPath(stateDir, devname);
+
+    VIR_FREE(devname);
+
+    return pidfile;
+}
 
 static int
 qemuExtDeviceLogCommand(virQEMUDriverPtr driver,
@@ -101,6 +120,7 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
     virDomainTPMDefPtr tpm = def->tpm;
     unsigned char *secret = NULL;
     size_t secret_size;
+    char *pidfile = NULL;
 
     /* stop any left-over Cuse TPM for this VM */
     virTPMStopCuseTPM(tpm, vmuuid, false);
@@ -111,8 +131,13 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
                               &secret, &secret_size) < 0)
         goto cleanup;
 
+    if (!(pidfile = virExtDevicePidFileBuild(cfg->stateDir,
+                                             vm->def->name, "swtpm_cuse")))
+        goto cleanup;
+
     if (!(cmd = virTPMCuseTPMBuildCommand(tpm, vmuuid, cfg->swtpm_cuse_user,
-                                          secret, secret_size)))
+                                          secret, secret_size,
+                                          pidfile)))
         goto error;
 
     if (qemuExtDeviceLogCommand(driver, vm, cmd, "CUSE TPM") < 0)
@@ -162,6 +187,17 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto error;
     }
 
+    if (virFileWaitAvailable(pidfile, 1000) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not find cuse-tpm's pidfile '%s'"),
+                       pidfile);
+        goto error;
+    }
+
+    VIR_FREE(tpm->data.cuse.pidfile);
+    tpm->data.cuse.pidfile = pidfile;
+    pidfile = NULL;
+
     ret = 0;
 
  cleanup:
@@ -181,6 +217,7 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
     virTPMStopCuseTPM(tpm, vmuuid, false);
     VIR_FREE(tpm->data.cuse.source.data.file.path);
+    VIR_FREE(pidfile);
 
     goto cleanup;
 }

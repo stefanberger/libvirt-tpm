@@ -36,6 +36,7 @@
 #include "virfile.h"
 #include "virtypedparam.h"
 #include "virnuma.h"
+#include "virpidfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -1195,6 +1196,58 @@ qemuSetupCgroupForEmulator(virQEMUDriverPtr driver,
 
     if (cgroup_emulator) {
         virCgroupRemove(cgroup_emulator);
+        virCgroupFree(&cgroup_emulator);
+    }
+
+    return -1;
+}
+
+int
+qemuSetupCgroupForExtDevices(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainTPMDefPtr tpm = vm->def->tpm;
+    virCgroupPtr cgroup_emulator = NULL;
+    pid_t pid;
+
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
+     * neither period nor quota settings.  And if CPUSET controller is
+     * not initialized either, then there's nothing to do anyway.
+     */
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
+
+    if (priv->cgroup == NULL)
+        return 0; /* Not supported, so claim success */
+
+    if (virCgroupNewEmulator(priv->cgroup, false, &cgroup_emulator) < 0)
+        goto cleanup;
+
+    if (tpm) {
+        switch (tpm->type) {
+        case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+            if (virPidFileReadPath(tpm->data.cuse.pidfile, &pid) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Could not read CUSE TPM's pidfile %s"),
+                               tpm->data.cuse.pidfile);
+                goto cleanup;
+            }
+            if (virCgroupAddProc(cgroup_emulator, pid) < 0)
+                goto cleanup;
+            break;
+        case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        case VIR_DOMAIN_TPM_TYPE_LAST:
+            break;
+        }
+    }
+
+    virCgroupFree(&cgroup_emulator);
+    return 0;
+
+ cleanup:
+    if (cgroup_emulator) {
         virCgroupFree(&cgroup_emulator);
     }
 
