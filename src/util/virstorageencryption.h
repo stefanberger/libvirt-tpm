@@ -47,6 +47,7 @@ typedef enum {
     /* "default" is only valid for volume creation */
     VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT = 0,
     VIR_STORAGE_ENCRYPTION_FORMAT_QCOW, /* Both qcow and qcow2 */
+    VIR_STORAGE_ENCRYPTION_FORMAT_VTPM,
 
     VIR_STORAGE_ENCRYPTION_FORMAT_LAST,
 } virStorageEncryptionFormatType;
@@ -73,7 +74,8 @@ int virStorageEncryptionFormat(virBufferPtr buf,
 
 /* A helper for VIR_STORAGE_ENCRYPTION_FORMAT_QCOW */
 enum {
-  VIR_STORAGE_QCOW_PASSPHRASE_SIZE = 16
+  VIR_STORAGE_QCOW_PASSPHRASE_SIZE = 16,
+  VIR_STORAGE_CUSE_TPM_PASSPHRASE_SIZE = 16
 };
 
 int virStorageGenerateQcowPassphrase(unsigned char *dest);

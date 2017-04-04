@@ -1947,6 +1947,8 @@ void virDomainTPMDefFree(virDomainTPMDefPtr def)
         VIR_FREE(def->data.cuse.source.data.file.path);
         VIR_FREE(def->data.cuse.storagepath);
         VIR_FREE(def->data.cuse.logfile);
+        VIR_FREE(def->data.cuse.pwdfile);
+        virStorageEncryptionFree(def->data.cuse.encryption);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
@@ -9347,7 +9349,9 @@ virDomainSmartcardDefParseXML(xmlNodePtr node,
  * or like this:
  *
  * <tpm model='tpm-tis'>
- *   <backend type='cuse-tpm'/>
+ *   <backend type='cuse-tpm'>
+ *     <encryption format='default'/>
+ *   </backend>
  * </tpm>
  */
 static virDomainTPMDefPtr
@@ -9362,6 +9366,7 @@ virDomainTPMDefParseXML(xmlNodePtr node,
     virDomainTPMDefPtr def;
     xmlNodePtr save = ctxt->node;
     xmlNodePtr *backends = NULL;
+    xmlNodePtr encnode = NULL;
     int nbackends;
 
     if (VIR_ALLOC(def) < 0)
@@ -9417,6 +9422,23 @@ virDomainTPMDefParseXML(xmlNodePtr node,
         path = NULL;
         break;
     case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        encnode = virXPathNode("./backend/encryption", ctxt);
+        if (encnode) {
+            def->data.cuse.encryption =
+                virStorageEncryptionParseNode(ctxt->doc, encnode);
+            if (def->data.cuse.encryption == NULL)
+                goto error;
+            if (def->data.cuse.encryption->format !=
+                    VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT &&
+                def->data.cuse.encryption->format !=
+                    VIR_STORAGE_ENCRYPTION_FORMAT_VTPM) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Unsupported TPM encryption type '%s'"),
+                               virStorageEncryptionFormatTypeToString(
+                                   def->data.cuse.encryption->format));
+                goto error;
+            }
+        }
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         goto error;
@@ -19300,6 +19322,13 @@ virDomainTPMDefFormat(virBufferPtr buf,
                               def->data.passthrough.source.data.file.path);
         break;
     case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        if (def->data.cuse.encryption) {
+            virBufferAddLit(buf, ">\n");
+            did_nl = true;
+            if (virStorageEncryptionFormat(buf,
+                    def->data.cuse.encryption) < 0)
+            return -1;
+        }
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
     }

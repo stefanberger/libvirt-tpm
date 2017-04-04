@@ -5739,6 +5739,9 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;tpm model='tpm-tis'&gt;
       &lt;backend type='cuse-tpm'&gt;
+        &lt;encryption format='vtpm'&gt;
+          &lt;secret type='passphrase' usage='vtpm_example'/&gt;
+        &lt;/encryption&gt;
       &lt;/backend&gt;
     &lt;/tpm&gt;
   &lt;/devices&gt;
@@ -5865,6 +5868,35 @@ qemu-kvm -net nic,model=? /dev/null
           For this backend type the CUSE TPM must be installed on the
           host. Libvirt will automatically start an independent CUSE TPM
           for each QEMU guest requesting access to it.
+        </p>
+      </dd>
+      <dt><code>encryption</code></dt>
+      <dd>
+        <p>
+          The <code>encryption</code> element is supported for the backend
+          type <code>cuse-tpm</code>. It has a mandatory attribute
+          <code>format</code> with possible value of either <code>vtpm</code>
+          or <code>default</code>. If value is <code>default</code> then
+          the following subelement <code>secret</code> should be omitted
+          and a secret will be automatically created and the XML adapted
+          and show the value <code>vtpm</code> along with the subelement
+          <code>secret</code> referencing an automaically generated
+          secret.
+          If the value <code>vtpm</code> is provided, then the
+          <code>encrytion</code> element references the encryption key for the
+          TPM's state. It then requires the sub-element <code>secret</code>
+          with mandatory attribute <code>type</code> to tie back to a
+          <a href="formatsecret.html">libvirt secret object</a> that
+          holds the actual encryption key. A known secrete type is
+          "vtpm" and will require either a <code>uuid</code> attribute of
+          the secret object or a <code>usage</code> attribute matching
+          the key that was specified in the secret object.
+
+          The <code>encryption</code> element must be provided when the
+          <code>tpm</code> element is defined and before the virtual machine
+          is started for the first time since encryption must be applied
+          the first time the TPM is set up.
+          <span class="since">libvirt 1.x.y</span>
         </p>
       </dd>
     </dl>

@@ -42,7 +42,7 @@ VIR_ENUM_IMPL(virStorageEncryptionSecret,
 
 VIR_ENUM_IMPL(virStorageEncryptionFormat,
               VIR_STORAGE_ENCRYPTION_FORMAT_LAST,
-              "default", "qcow")
+              "default", "qcow", "vtpm")
 
 static void
 virStorageEncryptionSecretFree(virStorageEncryptionSecretPtr secret)

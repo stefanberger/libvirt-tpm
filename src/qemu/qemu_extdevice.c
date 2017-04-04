@@ -30,6 +30,7 @@
 #include "virstring.h"
 #include "virtime.h"
 #include "virtpm.h"
+#include "tpm/virtpm_backend.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -95,14 +96,23 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
     int logfile = -1;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virDomainDefPtr def = vm->def;
+    virDomainDefPtr newDef = vm->newDef;
     unsigned char *vmuuid = def->uuid;
     virDomainTPMDefPtr tpm = def->tpm;
+    unsigned char *secret = NULL;
+    size_t secret_size;
 
     /* stop any left-over Cuse TPM for this VM */
     virTPMStopCuseTPM(tpm, vmuuid, false);
 
-    if (!(cmd = virTPMCuseTPMBuildCommand(tpm, vmuuid, cfg->swtpm_cuse_user)))
+    /* setup encryption if needed */
+    if (virTPMSetupEncryption(conn, newDef, cfg->configDir,
+                              &secret, &secret_size) < 0)
         goto cleanup;
+
+    if (!(cmd = virTPMCuseTPMBuildCommand(tpm, vmuuid, cfg->swtpm_cuse_user,
+                                          secret, secret_size)))
+        goto error;
 
     if (qemuExtDeviceLogCommand(driver, vm, cmd, "CUSE TPM") < 0)
         goto cleanup;
@@ -157,12 +167,17 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_FORCE_CLOSE(logfile);
     VIR_FREE(errbuf);
     virCommandFree(cmd);
+    VIR_FREE(secret);
 
     virObjectUnref(cfg);
 
     return ret;
 
  error:
+    if (def->tpm->data.cuse.pwdfile) {
+        unlink(def->tpm->data.cuse.pwdfile);
+        VIR_FREE(def->tpm->data.cuse.pwdfile);
+    }
     virTPMStopCuseTPM(tpm, vmuuid, false);
     VIR_FREE(tpm->data.cuse.source.data.file.path);
 

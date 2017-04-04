@@ -12,6 +12,7 @@
         <choice>
           <value>default</value>
           <value>qcow</value>
+          <value>vtpm</value>
         </choice>
       </attribute>
       <zeroOrMore>

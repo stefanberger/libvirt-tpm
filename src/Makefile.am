@@ -547,6 +547,7 @@ DRIVER_SOURCE_FILES = \
 	$(VMWARE_DRIVER_SOURCES) \
 	$(XEN_DRIVER_SOURCES) \
 	$(XENAPI_DRIVER_SOURCES) \
+	$(TPM_DRIVER_SOURCES) \
 	$(NULL)
 
 STATEFUL_DRIVER_SOURCE_FILES = \
@@ -562,6 +563,7 @@ STATEFUL_DRIVER_SOURCE_FILES = \
 	$(STORAGE_DRIVER_SOURCES) \
 	$(UML_DRIVER_SOURCES) \
 	$(XEN_DRIVER_SOURCES) \
+	$(TPM_DRIVER_SOURCES) \
 	$(NULL)
 
 
@@ -915,6 +917,9 @@ NWFILTER_DRIVER_SOURCES =						\
 		nwfilter/nwfilter_learnipaddr.c				\
 		nwfilter/nwfilter_learnipaddr.h
 
+# TPM backend specific impls
+TPM_DRIVER_SOURCES =							\
+		tpm/virtpm_backend.h tpm/virtpm_backend.c
 
 # Security framework and drivers for various models
 SECURITY_DRIVER_SOURCES =						\
@@ -1652,6 +1657,14 @@ libvirt_driver_access_la_CFLAGS = \
 libvirt_driver_access_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_access_la_LIBADD =
 
+libvirt_driver_tpm_la_SOURCES = $(TPM_DRIVER_SOURCES)
+noinst_LTLIBRARIES += libvirt_driver_tpm.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_tpm.la
+libvirt_driver_tpm_la_CFLAGS = \
+		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_tpm_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_tpm_la_LIBADD =
+
 EXTRA_DIST += access/genpolkit.pl
 
 $(ACCESS_DRIVER_POLKIT_POLICY): $(srcdir)/access/viraccessperm.h \
@@ -1777,7 +1790,8 @@ EXTRA_DIST +=							\
 		$(VBOX_DRIVER_EXTRA_DIST)			\
 		$(VMWARE_DRIVER_SOURCES)			\
 		$(XENCONFIG_SOURCES)				\
-		$(ACCESS_DRIVER_POLKIT_POLICY)
+		$(ACCESS_DRIVER_POLKIT_POLICY)			\
+		$(TPM_DRIVER_SOURCES)
 
 check-local: check-augeas
 

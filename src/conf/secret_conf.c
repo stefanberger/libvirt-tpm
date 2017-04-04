@@ -37,7 +37,7 @@
 VIR_LOG_INIT("conf.secret_conf");
 
 VIR_ENUM_IMPL(virSecretUsage, VIR_SECRET_USAGE_TYPE_LAST,
-              "none", "volume", "ceph", "iscsi")
+              "none", "volume", "ceph", "iscsi", "vtpm")
 
 void
 virSecretDefFree(virSecretDefPtr def)
@@ -60,6 +60,10 @@ virSecretDefFree(virSecretDefPtr def)
 
     case VIR_SECRET_USAGE_TYPE_ISCSI:
         VIR_FREE(def->usage.target);
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_VTPM:
+        VIR_FREE(def->usage.vtpm);
         break;
 
     default:
@@ -118,6 +122,15 @@ virSecretDefParseUsage(xmlXPathContextPtr ctxt,
         if (!def->usage.target) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("iSCSI usage specified, but target is missing"));
+            return -1;
+        }
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_VTPM:
+        def->usage.vtpm = virXPathString("string(./usage/name)", ctxt);
+        if (!def->usage.vtpm) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("vTPM usage specified, but name is missing"));
             return -1;
         }
         break;
@@ -279,6 +292,13 @@ virSecretDefFormatUsage(virBufferPtr buf,
         if (def->usage.target != NULL) {
             virBufferEscapeString(buf, "<target>%s</target>\n",
                                   def->usage.target);
+        }
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_VTPM:
+        if (def->usage.vtpm != NULL) {
+            virBufferEscapeString(buf, "<name>%s</name>\n",
+                                  def->usage.vtpm);
         }
         break;
 

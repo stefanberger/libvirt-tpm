@@ -1243,6 +1243,8 @@ struct _virDomainTPMDef {
             /* CUSE TPM storage path */
             char *storagepath;
             char *logfile;
+            char *pwdfile;
+            virStorageEncryptionPtr encryption;
         } cuse;
     } data;
 };

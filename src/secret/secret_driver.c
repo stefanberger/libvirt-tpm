@@ -157,6 +157,11 @@ secretFindByUsage(int usageType, const char *usageID)
             if (STREQ(s->def->usage.target, usageID))
                 return s;
             break;
+
+        case VIR_SECRET_USAGE_TYPE_VTPM:
+            if (STREQ(s->def->usage.vtpm, usageID))
+                return s;
+            break;
         }
     }
     return NULL;
@@ -591,6 +596,9 @@ secretUsageIDForDef(virSecretDefPtr def)
 
     case VIR_SECRET_USAGE_TYPE_ISCSI:
         return def->usage.target;
+
+    case VIR_SECRET_USAGE_TYPE_VTPM:
+        return def->usage.vtpm;
 
     default:
         return NULL;

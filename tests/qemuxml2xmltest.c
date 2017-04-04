@@ -550,6 +550,8 @@ mymain(void)
 
     DO_TEST("tpm-passthrough");
     DO_TEST("tpm-cuse-tpm");
+    DO_TEST("tpm-cuse-tpm-enc");
+    DO_TEST("tpm-cuse-tpm-enc-secret");
 
     DO_TEST("pci-bridge");
     DO_TEST_DIFFERENT("pci-bridge-many-disks");

@@ -30,10 +30,13 @@ typedef virDomainTPMDef *virDomainTPMDefPtr;
 char *virTPMCreateCancelPath(const char *devpath) ATTRIBUTE_RETURN_CHECK;
 virCommandPtr virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm,
                           const unsigned char *vmuuid,
-                          const char *userid) ATTRIBUTE_RETURN_CHECK;
+                          const char *userid,
+                          const unsigned char *secret,
+                          size_t secret_size) ATTRIBUTE_RETURN_CHECK;
 void virTPMStopCuseTPM(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
                        bool verbose);
 void virTPMDeleteCuseTPMStorage(const unsigned char *vmuuid);
 int virTPMTryConnect(const char *pathname, unsigned long timeout_ms);
+int virTPMExistsCuseTPMStorage(const unsigned char *vmuuid);
 
 #endif /* __VIR_TPM_H__ */

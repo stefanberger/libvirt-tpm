@@ -2595,6 +2595,10 @@ virSecuritySELinuxSetSecurityTPMLabels(virSecurityManagerPtr mgr ATTRIBUTE_UNUSE
             ret = _virSecuritySELinuxSetSecurityFileLabels(
                 def->tpm->data.cuse.logfile,
                 seclabel, false);
+        if (ret == 0 && def->tpm->data.cuse.pwdfile)
+            ret = _virSecuritySELinuxSetSecurityFileLabels(
+                def->tpm->data.cuse.pwdfile,
+                seclabel, false);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
