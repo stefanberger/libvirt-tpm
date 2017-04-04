@@ -5832,13 +5832,33 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/devices&gt;
   ...
 </pre>
+    <p>
+     Example: usage of the CUSE-TPM with QEMU with the
+     <code>spapr-vtpm</code> model for PowerPC64
+    </p>
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;tpm model='spapr-vtpm'&gt;
+      &lt;backend type='cuse-tpm'&gt;
+        &lt;encryption format='vtpm'&gt;
+          &lt;secret type='passphrase' usage='vtpm_example'/&gt;
+        &lt;/encryption&gt;
+      &lt;/backend&gt;
+    &lt;/tpm&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
     <dl>
       <dt><code>model</code></dt>
       <dd>
         <p>
           The <code>model</code> attribute specifies what device
           model QEMU provides to the guest. If no model name is provided,
-          <code>tpm-tis</code> will automatically be chosen.
+          <code>tpm-tis</code> will automatically be chosen. The
+          <code>tpm-tis</code> is currenly only available for x86 guests.
+          For PowerPC64 guests the <code>spapr-vtpm</code> model must
+          be chosen.
         </p>
       </dd>
       <dt><code>backend</code></dt>

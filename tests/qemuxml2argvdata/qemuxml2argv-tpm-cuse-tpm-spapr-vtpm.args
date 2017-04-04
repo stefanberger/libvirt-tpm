@@ -1,0 +1,6 @@
+LC_ALL=C PATH=/bin HOME=/home/test USER=test LOGNAME=test QEMU_AUDIO_DRV=none \
+/usr/bin/qemu -S -M pseries -m 2048 -smp 1 -nographic -nodefaults \
+-monitor unix:/tmp/test-monitor,server,nowait -boot c -usb \
+-tpmdev cuse-tpm,id=tpm-tpm0,path=/dev/test \
+-device spapr-vtpm,tpmdev=tpm-tpm0,id=tpm0,reg=0x4000 \
+-device virtio-balloon-pci,id=balloon0,bus=pci,addr=0x2

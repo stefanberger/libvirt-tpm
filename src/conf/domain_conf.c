@@ -754,7 +754,8 @@ VIR_ENUM_IMPL(virDomainRNGBackend,
               "egd");
 
 VIR_ENUM_IMPL(virDomainTPMModel, VIR_DOMAIN_TPM_MODEL_LAST,
-              "tpm-tis")
+              "tpm-tis",
+              "spapr-vtpm")
 
 VIR_ENUM_IMPL(virDomainTPMBackend, VIR_DOMAIN_TPM_TYPE_LAST,
               "passthrough",
@@ -9373,11 +9374,12 @@ virDomainTPMDefParseXML(xmlNodePtr node,
         return NULL;
 
     model = virXMLPropString(node, "model");
-    if (model != NULL &&
-        (int)(def->model = virDomainTPMModelTypeFromString(model)) < 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("Unknown TPM frontend model '%s'"), model);
-        goto error;
+    if (model != NULL) {
+        if ((int)(def->model = virDomainTPMModelTypeFromString(model)) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                          _("Unknown TPM frontend model '%s'"), model);
+            goto error;
+        }
     } else {
         def->model = VIR_DOMAIN_TPM_MODEL_TIS;
     }

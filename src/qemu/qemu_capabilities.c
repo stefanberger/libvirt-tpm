@@ -280,6 +280,8 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
               "qxl-vga.vgamem_mb",
               "pc-dimm",
               "cuse-tpm",
+
+              "spapr-vtpm", /* 186 */
     );
 
 
@@ -2430,6 +2432,10 @@ const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_MODEL_TIS,
         .caps = QEMU_CAPS_DEVICE_TPM_TIS,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_SPAPR_VTPM,
+        .caps = QEMU_CAPS_DEVICE_TPM_SPAPR_VTPM,
     },
 };
 
