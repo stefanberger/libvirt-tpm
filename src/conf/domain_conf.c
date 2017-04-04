@@ -9443,6 +9443,11 @@ virDomainInputDefParseXML(const virDomainDef *dom,
         goto error;
     }
 
+    if (!strcmp(type, "kbd")) {
+        VIR_FREE(type);
+        type = strdup("keyboard");
+    }
+
     if ((def->type = virDomainInputTypeFromString(type)) < 0) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("unknown input device type '%s'"), type);
