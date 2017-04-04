@@ -497,6 +497,19 @@ testCompareXMLToArgv(const void *data)
         }
     }
 
+    if (vm->def->tpm) {
+       switch (vm->def->tpm->type) {
+       case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+           if (VIR_STRDUP(vm->def->tpm->data.emulator.source.data.file.path,
+                          "/dev/test") < 0)
+               goto cleanup;
+           break;
+       case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+       case VIR_DOMAIN_TPM_TYPE_LAST:
+           break;
+       }
+    }
+
     if (!(cmd = qemuProcessCreatePretendCmd(&driver, vm, migrateURI,
                                             (flags & FLAG_FIPS), false,
                                             VIR_QEMU_PROCESS_START_COLD))) {
@@ -2139,6 +2152,8 @@ mymain(void)
             QEMU_CAPS_DEVICE_TPM_CRB);
     DO_TEST_PARSE_ERROR("tpm-no-backend-invalid",
                         QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
+    DO_TEST("tpm-emulator",
+            QEMU_CAPS_DEVICE_TPM_EMULATOR, QEMU_CAPS_DEVICE_TPM_TIS);
 
 
     DO_TEST_PARSE_ERROR("pci-domain-invalid", NONE);
