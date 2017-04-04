@@ -30,6 +30,7 @@
 #if HAVE_SELINUX_LABEL_H
 # include <selinux/label.h>
 #endif
+#include <dirent.h>
 
 #include "security_driver.h"
 #include "security_selinux.h"
@@ -2516,6 +2517,92 @@ virSecuritySELinuxGetSecurityMountOptions(virSecurityManagerPtr mgr,
     return opts;
 }
 
+
+static int
+_virSecuritySELinuxSetSecurityFileLabels(const char *path,
+                                         virSecurityLabelDefPtr seclabel,
+                                         bool recurse)
+{
+    int ret = 0;
+    int n = 0;
+    struct dirent dirent, *result = NULL;
+    struct stat stat;
+    char *filename = NULL;
+    DIR *dir = opendir(path);
+
+    if (!dir)
+        return virSecuritySELinuxSetFilecon(path, seclabel->imagelabel);
+
+    while ((n = readdir_r(dir, &dirent, &result)) == 0) {
+        if (result == NULL)
+            break;
+        /* do NOT step into parent dir */
+        if (STREQ("..", dirent.d_name))
+            continue;
+        if (virAsprintf(&filename, "%s/%s", path, dirent.d_name) < 0) {
+            ret = -1;
+            break;
+        }
+        n = lstat(filename, &stat);
+        if (n != 0)
+            break;
+        if (S_ISDIR(stat.st_mode)) {
+            ret = virSecuritySELinuxSetFilecon(filename, seclabel->imagelabel);
+            if (ret)
+                break;
+            if (recurse)
+                ret = _virSecuritySELinuxSetSecurityFileLabels(filename,
+                                                               seclabel,
+                                                               recurse);
+        } else if (S_ISREG(stat.st_mode)) {
+            ret = virSecuritySELinuxSetFilecon(filename, seclabel->imagelabel);
+        }
+        VIR_FREE(filename);
+        if (ret)
+            break;
+    }
+    if (n) {
+        virReportSystemError(errno, _("Unable to label files under %s"),
+                             path);
+        ret = -1;
+    }
+
+    VIR_FREE(filename);
+    closedir(dir);
+
+    return ret;
+}
+
+static int
+virSecuritySELinuxSetSecurityTPMLabels(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                       virDomainDefPtr def)
+{
+    int ret = 0;
+    virSecurityLabelDefPtr seclabel;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (seclabel == NULL)
+        return 0;
+
+    switch (def->tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        break;
+    case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
+        ret = _virSecuritySELinuxSetSecurityFileLabels(
+            def->tpm->data.cuse.storagepath,
+            seclabel, false);
+        if (ret == 0 && def->tpm->data.cuse.logfile)
+            ret = _virSecuritySELinuxSetSecurityFileLabels(
+                def->tpm->data.cuse.logfile,
+                seclabel, false);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
 virSecurityDriver virSecurityDriverSELinux = {
     .privateDataLen                     = sizeof(virSecuritySELinuxData),
     .name                               = SECURITY_SELINUX_NAME,
@@ -2560,4 +2647,6 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainGetSecurityMountOptions      = virSecuritySELinuxGetSecurityMountOptions,
     .getBaseLabel                       = virSecuritySELinuxGetBaseLabel,
+
+    .domainSetSecurityTPMLabels         = virSecuritySELinuxSetSecurityTPMLabels,
 };

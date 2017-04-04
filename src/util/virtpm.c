@@ -467,9 +467,10 @@ virTPMCuseTPMBuildCommand(virDomainTPMDefPtr tpm, const unsigned char *vmuuid,
         virCommandAllowCap(cmd, CAP_SETUID);
     }
 
-    VIR_FREE(storagepath);
-    VIR_FREE(logfile);
     VIR_FREE(devname);
+    tpm->data.cuse.storagepath = storagepath;
+    VIR_FREE(tpm->data.cuse.logfile);
+    tpm->data.cuse.logfile = logfile;
 
     return cmd;
 

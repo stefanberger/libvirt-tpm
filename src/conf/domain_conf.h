@@ -1240,6 +1240,9 @@ struct _virDomainTPMDef {
         } passthrough;
         struct {
             virDomainChrSourceDef source;
+            /* CUSE TPM storage path */
+            char *storagepath;
+            char *logfile;
         } cuse;
     } data;
 };

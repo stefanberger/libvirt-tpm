@@ -1016,6 +1016,7 @@ virSecurityManagerSetProcessLabel;
 virSecurityManagerSetSavedStateLabel;
 virSecurityManagerSetSocketLabel;
 virSecurityManagerSetTapFDLabel;
+virSecurityManagerSetTPMLabels;
 virSecurityManagerStackAddNested;
 virSecurityManagerVerify;
 

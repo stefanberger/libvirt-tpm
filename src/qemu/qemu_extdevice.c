@@ -109,12 +109,36 @@ qemuExtTPMStartCuseTPM(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     virCommandSetErrorBuffer(cmd, &errbuf);
 
-    if (virCommandRun(cmd, &exitstatus) < 0 || exitstatus != 0) {
+    if (virSecurityManagerSetTPMLabels(driver->securityManager,
+                                       def) < 0)
+        goto error;
+
+    if (virSecurityManagerSetChildProcessLabel(driver->securityManager,
+                                               def, cmd) < 0)
+        goto error;
+
+    if (virSecurityManagerPreFork(driver->securityManager) < 0)
+        goto error;
+
+    /*
+     * make sure we run this as root
+     * note: when installing libvirtd via make install we don't need this,
+     *       but when installed from RPM, this is necessary.
+     */
+    virCommandSetUID(cmd, 0);
+    virCommandSetGID(cmd, 0);
+
+    ret = virCommandRun(cmd, &exitstatus);
+
+    virSecurityManagerPostFork(driver->securityManager);
+
+    if (ret < 0 || exitstatus != 0) {
         VIR_ERROR("Could not start the cuse-tpm. exitstatus: %d\n"
                   "stderr: %s\n", exitstatus, errbuf);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Could not start the cuse-tpm. exitstatus: %d, "
                        "error: %s"), exitstatus, errbuf);
+        ret = -1;
         goto error;
     }
 

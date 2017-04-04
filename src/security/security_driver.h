@@ -118,7 +118,8 @@ typedef int (*virSecurityDomainSetImageLabel) (virSecurityManagerPtr mgr,
 typedef int (*virSecurityDomainRestoreImageLabel) (virSecurityManagerPtr mgr,
                                                    virDomainDefPtr def,
                                                    virStorageSourcePtr src);
-
+typedef int (*virSecurityDomainSetTPMLabels) (virSecurityManagerPtr mgr,
+                                              virDomainDefPtr def);
 
 struct _virSecurityDriver {
     size_t privateDataLen;
@@ -168,6 +169,8 @@ struct _virSecurityDriver {
     virSecurityDomainSetHugepages domainSetSecurityHugepages;
 
     virSecurityDriverGetBaseLabel getBaseLabel;
+
+    virSecurityDomainSetTPMLabels domainSetSecurityTPMLabels;
 };
 
 virSecurityDriverPtr virSecurityDriverLookup(const char *name,

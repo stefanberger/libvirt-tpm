@@ -149,5 +149,7 @@ int virSecurityManagerSetImageLabel(virSecurityManagerPtr mgr,
 int virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
                                         virDomainDefPtr vm,
                                         virStorageSourcePtr src);
+int virSecurityManagerSetTPMLabels(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm);
 
 #endif /* VIR_SECURITY_MANAGER_H__ */

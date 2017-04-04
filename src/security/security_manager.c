@@ -991,3 +991,17 @@ virSecurityManagerSetHugepages(virSecurityManagerPtr mgr,
 
     return 0;
 }
+
+int virSecurityManagerSetTPMLabels(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm)
+{
+    if (mgr->drv->domainSetSecurityTPMLabels) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainSetSecurityTPMLabels(mgr, vm);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    return 0;
+}

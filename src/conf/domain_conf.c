@@ -1945,6 +1945,8 @@ void virDomainTPMDefFree(virDomainTPMDefPtr def)
         break;
     case VIR_DOMAIN_TPM_TYPE_CUSE_TPM:
         VIR_FREE(def->data.cuse.source.data.file.path);
+        VIR_FREE(def->data.cuse.storagepath);
+        VIR_FREE(def->data.cuse.logfile);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
