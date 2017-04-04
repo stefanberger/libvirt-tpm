@@ -119,6 +119,9 @@ module Libvirtd_qemu =
    let vxhs_entry = bool_entry "vxhs_tls"
                  | str_entry "vxhs_tls_x509_cert_dir"
 
+   let swtpm_user_entry = str_entry "swtpm_user"
+   let swtpm_group_entry = str_entry "swtpm_group"
+
    (* Each entry in the config is one of the following ... *)
    let entry = default_tls_entry
              | vnc_entry
@@ -138,6 +141,8 @@ module Libvirtd_qemu =
              | gluster_debug_level_entry
              | memory_entry
              | vxhs_entry
+             | swtpm_user_entry
+             | swtpm_group_entry
 
    let comment = [ label "#comment" . del /#[ \t]*/ "# " .  store /([^ \t\n][^\n]*)?/ . del /\n/ "\n" ]
    let empty = [ label "#empty" . eol ]
