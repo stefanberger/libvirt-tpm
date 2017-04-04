@@ -365,8 +365,9 @@ test_scripts +=				\
 	$(NULL)
 
 test_programs += 			\
-	eventtest			\
-	libvirtdconftest
+	eventtest
+
+#	libvirtdconftest
 else ! WITH_LIBVIRTD
 EXTRA_DIST += 				\
 	test_conf.sh			\

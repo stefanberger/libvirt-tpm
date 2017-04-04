@@ -368,6 +368,7 @@
     %define enable_werror --disable-werror
 %endif
 
+%define extra_release .vtpm
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
