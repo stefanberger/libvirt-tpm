@@ -7628,6 +7628,8 @@ qemu-kvm -net nic,model=? /dev/null
           The <code>model</code> attribute specifies what device
           model QEMU provides to the guest. If no model name is provided,
           <code>tpm-tis</code> will automatically be chosen.
+          Another available choice is the <code>tpm-crb</code>, which
+          should only be used when the backend is a TPM 2.
         </p>
       </dd>
       <dt><code>backend</code></dt>
