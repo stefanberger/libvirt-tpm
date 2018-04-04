@@ -29408,3 +29408,41 @@ virDomainDiskTranslateSourcePool(virDomainDiskDefPtr def)
     virStoragePoolDefFree(pooldef);
     return ret;
 }
+
+
+static int
+virDomainCheckTPMChanges(virDomainDefPtr def,
+                         virDomainDefPtr newDef)
+{
+    int ret = 0;
+
+    if (!def->tpm)
+        return 0;
+
+    if (!newDef->tpm) {
+        /* TPM removed */
+        virDomainTPMDelete(def);
+    } else {
+        if (newDef->tpm->type != def->tpm->type) {
+            /* type changed */
+            virDomainTPMDelete(def);
+        }
+    }
+
+    return ret;
+}
+
+
+int
+virDomainCheckDeviceChanges(virDomainDefPtr def,
+                            virDomainDefPtr newDef)
+{
+    int ret;
+
+    if (!def || !newDef)
+        return 0;
+
+    ret = virDomainCheckTPMChanges(def, newDef);
+
+    return ret;
+}

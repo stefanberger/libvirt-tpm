@@ -7433,6 +7433,10 @@ qemuDomainDefineXMLFlags(virConnectPtr conn,
         goto cleanup;
 
     virObjectRef(vm);
+
+    if (oldDef && qemuExtDevicesInitPaths(driver, oldDef) < 0)
+        goto cleanup;
+
     def = NULL;
     if (qemuDomainHasBlockjob(vm, true)) {
         virReportError(VIR_ERR_BLOCK_COPY_ACTIVE, "%s",
@@ -7442,7 +7446,8 @@ qemuDomainDefineXMLFlags(virConnectPtr conn,
     }
     vm->persistent = 1;
 
-    if (virDomainSaveConfig(cfg->configDir, driver->caps,
+    if (virDomainCheckDeviceChanges(oldDef, vm->def) < 0 ||
+        virDomainSaveConfig(cfg->configDir, driver->caps,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
         if (oldDef) {
             /* There is backup so this VM was defined before.

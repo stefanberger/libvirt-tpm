@@ -3536,5 +3536,8 @@ virDomainNetResolveActualType(virDomainNetDefPtr iface)
 
 int virDomainDiskTranslateSourcePool(virDomainDiskDefPtr def);
 
+int virDomainCheckDeviceChanges(virDomainDefPtr def,
+                                virDomainDefPtr newDef)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __DOMAIN_CONF_H */
