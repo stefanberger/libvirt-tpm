@@ -141,12 +141,32 @@ qemuExtTPMStartEmulator(virQEMUDriverPtr driver,
 
     virCommandSetErrorBuffer(cmd, &errbuf);
 
-    if (virCommandRun(cmd, &exitstatus) < 0 || exitstatus != 0) {
+    if (virSecurityManagerSetTPMLabels(driver->securityManager,
+                                       def) < 0)
+        goto error;
+
+    if (virSecurityManagerSetChildProcessLabel(driver->securityManager,
+                                               def, cmd) < 0)
+        goto error;
+
+    if (virSecurityManagerPreFork(driver->securityManager) < 0)
+        goto error;
+
+    /* make sure we run this with the appropriate user */
+    virCommandSetUID(cmd, cfg->swtpm_user);
+    virCommandSetGID(cmd, cfg->swtpm_user);
+
+    ret = virCommandRun(cmd, &exitstatus);
+
+    virSecurityManagerPostFork(driver->securityManager);
+
+    if (ret < 0 || exitstatus != 0) {
         VIR_ERROR("Could not start 'swtpm'. exitstatus: %d\n"
                   "stderr: %s\n", exitstatus, errbuf);
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Could not start 'swtpm'. exitstatus: %d, "
                        "error: %s"), exitstatus, errbuf);
+        ret = -1;
         goto error;
     }
 

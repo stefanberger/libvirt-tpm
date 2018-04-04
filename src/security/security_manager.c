@@ -1,3 +1,4 @@
+
 /*
  * security_manager.c: Internal security manager API
  *
@@ -1206,4 +1207,21 @@ virSecurityManagerRestoreChardevLabel(virSecurityManagerPtr mgr,
 
     virReportUnsupportedError();
     return -1;
+}
+
+
+int virSecurityManagerSetTPMLabels(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm)
+{
+    int ret;
+
+    if (mgr->drv->domainSetSecurityTPMLabels) {
+        virObjectLock(mgr);
+        ret = mgr->drv->domainSetSecurityTPMLabels(mgr, vm);
+        virObjectUnlock(mgr);
+
+        return ret;
+    }
+
+    return 0;
 }

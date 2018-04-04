@@ -1334,6 +1334,7 @@ virSecurityManagerSetProcessLabel;
 virSecurityManagerSetSavedStateLabel;
 virSecurityManagerSetSocketLabel;
 virSecurityManagerSetTapFDLabel;
+virSecurityManagerSetTPMLabels;
 virSecurityManagerStackAddNested;
 virSecurityManagerTransactionAbort;
 virSecurityManagerTransactionCommit;

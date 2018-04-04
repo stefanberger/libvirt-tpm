@@ -149,6 +149,8 @@ typedef int (*virSecurityDomainRestoreChardevLabel) (virSecurityManagerPtr mgr,
                                                      virDomainDefPtr def,
                                                      virDomainChrSourceDefPtr dev_source,
                                                      bool chardevStdioLogd);
+typedef int (*virSecurityDomainSetTPMLabels) (virSecurityManagerPtr mgr,
+                                              virDomainDefPtr def);
 
 
 struct _virSecurityDriver {
@@ -213,6 +215,8 @@ struct _virSecurityDriver {
 
     virSecurityDomainSetChardevLabel domainSetSecurityChardevLabel;
     virSecurityDomainRestoreChardevLabel domainRestoreSecurityChardevLabel;
+
+    virSecurityDomainSetTPMLabels domainSetSecurityTPMLabels;
 };
 
 virSecurityDriverPtr virSecurityDriverLookup(const char *name,

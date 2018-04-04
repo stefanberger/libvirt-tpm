@@ -194,4 +194,7 @@ int virSecurityManagerRestoreChardevLabel(virSecurityManagerPtr mgr,
                                           virDomainChrSourceDefPtr dev_source,
                                           bool chardevStdioLogd);
 
+int virSecurityManagerSetTPMLabels(virSecurityManagerPtr mgr,
+                                   virDomainDefPtr vm);
+
 #endif /* VIR_SECURITY_MANAGER_H__ */

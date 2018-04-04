@@ -760,6 +760,23 @@ virSecurityStackDomainRestoreChardevLabel(virSecurityManagerPtr mgr,
     return rc;
 }
 
+static int
+virSecurityStackSetSecurityTPMLabels(virSecurityManagerPtr mgr,
+                                     virDomainDefPtr vm)
+{
+    virSecurityStackDataPtr priv = virSecurityManagerGetPrivateData(mgr);
+    virSecurityStackItemPtr item = priv->itemsHead;
+    int rc = 0;
+
+    for (; item; item = item->next) {
+        if (virSecurityManagerSetTPMLabels(item->securityManager,
+                                           vm) < 0)
+            rc = -1;
+    }
+
+    return rc;
+}
+
 virSecurityDriver virSecurityDriverStack = {
     .privateDataLen                     = sizeof(virSecurityStackData),
     .name                               = "stack",
@@ -822,4 +839,6 @@ virSecurityDriver virSecurityDriverStack = {
 
     .domainSetSecurityChardevLabel      = virSecurityStackDomainSetChardevLabel,
     .domainRestoreSecurityChardevLabel  = virSecurityStackDomainRestoreChardevLabel,
+
+    .domainSetSecurityTPMLabels         = virSecurityStackSetSecurityTPMLabels,
 };

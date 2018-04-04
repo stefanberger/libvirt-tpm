@@ -3047,6 +3047,72 @@ virSecuritySELinuxDomainSetPathLabel(virSecurityManagerPtr mgr,
     return virSecuritySELinuxSetFilecon(mgr, path, seclabel->imagelabel);
 }
 
+static int
+_virSecuritySELinuxSetSecurityFileLabels(virSecurityManagerPtr mgr,
+                                         const char *path,
+                                         virSecurityLabelDefPtr seclabel)
+{
+    int ret = 0;
+    struct dirent *ent;
+    char *filename = NULL;
+    DIR *dir;
+
+    if (virDirOpen(&dir, path) < 0)
+        return virSecuritySELinuxSetFilecon(mgr, path, seclabel->imagelabel);
+
+    while ((ret = virDirRead(dir, &ent, path)) > 0) {
+        if (ent->d_type != DT_REG)
+            continue;
+
+        if (virAsprintf(&filename, "%s/%s", path, ent->d_name) < 0) {
+            ret = -1;
+            break;
+        }
+        ret = virSecuritySELinuxSetFilecon(mgr, filename,
+                                           seclabel->imagelabel);
+        VIR_FREE(filename);
+        if (ret)
+            break;
+    }
+    if (ret)
+        virReportSystemError(errno, _("Unable to label files under %s"),
+                             path);
+
+    virDirClose(&dir);
+
+    return ret;
+}
+
+static int
+virSecuritySELinuxSetSecurityTPMLabels(virSecurityManagerPtr mgr,
+                                       virDomainDefPtr def)
+{
+    int ret = 0;
+    virSecurityLabelDefPtr seclabel;
+
+    seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (seclabel == NULL)
+        return 0;
+
+    switch (def->tpm->type) {
+    case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        break;
+    case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+        ret = _virSecuritySELinuxSetSecurityFileLabels(
+            mgr, def->tpm->data.emulator.storagepath,
+            seclabel);
+        if (ret == 0 && def->tpm->data.emulator.logfile)
+            ret = _virSecuritySELinuxSetSecurityFileLabels(
+                mgr, def->tpm->data.emulator.logfile,
+                seclabel);
+        break;
+    case VIR_DOMAIN_TPM_TYPE_LAST:
+        break;
+    }
+
+    return ret;
+}
+
 virSecurityDriver virSecurityDriverSELinux = {
     .privateDataLen                     = sizeof(virSecuritySELinuxData),
     .name                               = SECURITY_SELINUX_NAME,
@@ -3106,4 +3172,6 @@ virSecurityDriver virSecurityDriverSELinux = {
 
     .domainSetSecurityChardevLabel      = virSecuritySELinuxSetChardevLabel,
     .domainRestoreSecurityChardevLabel  = virSecuritySELinuxRestoreChardevLabel,
+
+    .domainSetSecurityTPMLabels         = virSecuritySELinuxSetSecurityTPMLabels,
 };
