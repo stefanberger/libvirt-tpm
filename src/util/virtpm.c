@@ -52,6 +52,8 @@ static char *swtpm_path;
 static char *swtpm_setup;
 static char *swtpm_ioctl;
 
+static bool swtpm_supports_tpm2;
+
 /**
  * virTPMCreateCancelPath:
  * @devpath: Path to the TPM device
@@ -96,6 +98,38 @@ virTPMCreateCancelPath(const char *devpath)
 }
 
 /*
+ * virTPMCheckForTPM2Support
+ *
+ * Check whether swtpm_setup supports TPM 2
+ */
+static void
+virTPMCheckForTPM2Support(void)
+{
+    virCommandPtr cmd;
+    char *help = NULL;
+
+    if (!swtpm_setup)
+        return;
+
+    cmd = virCommandNew(swtpm_setup);
+    if (!cmd)
+        return;
+
+    virCommandAddArg(cmd, "--help");
+    virCommandSetOutputBuffer(cmd, &help);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (strstr(help, "--tpm2"))
+        swtpm_supports_tpm2 = true;
+
+ cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(help);
+}
+
+/*
  * virTPMEmulatorInit
  *
  * Initialize the Emulator functions by searching for necessary
@@ -134,6 +168,7 @@ virTPMEmulatorInit(void)
             VIR_FREE(swtpm_setup);
             return -1;
         }
+        virTPMCheckForTPM2Support();
     }
 
     if (!swtpm_ioctl) {
@@ -393,13 +428,15 @@ int virTPMEmulatorPrepareHost(virDomainTPMDefPtr tpm,
  *              typically this should be the uid of 'tss' or 'root'
  * @logfile: The file to write the log into; it must be writable
  *           for the user given by userid or 'tss'
+ * @tpmversion: The version of the TPM, either a TPM 1.2 or TPM 2
  *
  * Setup the external swtpm
  */
 static int
 virTPMEmulatorRunSetup(const char *storagepath, const char *vmname,
                        const unsigned char *vmuuid,
-                       uid_t swtpm_user, const char *logfile)
+                       uid_t swtpm_user, const char *logfile,
+                       const virDomainTPMVersion tpmversion)
 {
     virCommandPtr cmd = NULL;
     int exitstatus;
@@ -419,6 +456,17 @@ virTPMEmulatorRunSetup(const char *storagepath, const char *vmname,
 
     virCommandSetUID(cmd, swtpm_user);
     virCommandSetGID(cmd, swtpm_user);
+
+    switch (tpmversion) {
+    case VIR_DOMAIN_TPM_VERSION_1_2:
+        break;
+    case VIR_DOMAIN_TPM_VERSION_2:
+        virCommandAddArgList(cmd, "--tpm2", NULL);
+        if (!swtpm_supports_tpm2) {
+            goto cleanup;
+        }
+        break;
+    }
 
     virCommandAddArgList(cmd,
                          "--tpm-state", storagepath,
@@ -477,7 +525,8 @@ virTPMEmulatorBuildCommand(virDomainTPMDefPtr tpm, const char *vmname,
 
     if (created &&
         virTPMEmulatorRunSetup(tpm->data.emulator.storagepath, vmname, vmuuid,
-                               swtpm_user, tpm->data.emulator.logfile) < 0)
+                               swtpm_user, tpm->data.emulator.logfile,
+                               tpm->tpmversion) < 0)
         goto error;
 
     unlink(tpm->data.emulator.source.data.nix.path);
@@ -501,6 +550,14 @@ virTPMEmulatorBuildCommand(virDomainTPMDefPtr tpm, const char *vmname,
 
     virCommandSetUID(cmd, swtpm_user);
     virCommandSetGID(cmd, swtpm_user);
+
+    switch (tpm->tpmversion) {
+    case VIR_DOMAIN_TPM_VERSION_1_2:
+        break;
+    case VIR_DOMAIN_TPM_VERSION_2:
+        virCommandAddArg(cmd, "--tpm2");
+        break;
+    }
 
     return cmd;
 

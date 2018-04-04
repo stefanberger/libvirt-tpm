@@ -2154,6 +2154,8 @@ mymain(void)
                         QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
     DO_TEST("tpm-emulator",
             QEMU_CAPS_DEVICE_TPM_EMULATOR, QEMU_CAPS_DEVICE_TPM_TIS);
+    DO_TEST("tpm-emulator-tpm2",
+            QEMU_CAPS_DEVICE_TPM_EMULATOR, QEMU_CAPS_DEVICE_TPM_TIS);
 
 
     DO_TEST_PARSE_ERROR("pci-domain-invalid", NONE);

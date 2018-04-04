@@ -7635,7 +7635,7 @@ qemu-kvm -net nic,model=? /dev/null
   ...
   &lt;devices&gt;
     &lt;tpm model='tpm-tis'&gt;
-      &lt;backend type='emulator'&gt;
+      &lt;backend type='emulator' tpmversion='2'&gt;
       &lt;/backend&gt;
     &lt;/tpm&gt;
   &lt;/devices&gt;
@@ -7683,6 +7683,21 @@ qemu-kvm -net nic,model=? /dev/null
             </p>
           </dd>
         </dl>
+      </dd>
+      <dt><code>tpmversion</code></dt>
+      <dd>
+        <p>
+          The <code>tpmversion</code> attribute indicates the version
+          of the TPM. By default a TPM 1.2 is created. This attribute
+          only works with the <code>emulator</code> backend. The following
+          versions are supported:
+        </p>
+        <ul>
+          <li>'1.2' : creates a TPM 1.2</li>
+          <li>'2.0' or '2' :  creates a TPM 2</li>
+        </ul>
+        Note that once a certain version of a TPM has been created for
+        a guest, the version must not be changed anymore.
       </dd>
     </dl>
 

@@ -12552,7 +12552,7 @@ virDomainSmartcardDefParseXML(virDomainXMLOptionPtr xmlopt,
  * or like this:
  *
  * <tpm model='tpm-tis'>
- *   <backend type='emulator'/>
+ *   <backend type='emulator' tpmversion='2'/>
  * </tpm>
  */
 static virDomainTPMDefPtr
@@ -12565,6 +12565,7 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
     char *path = NULL;
     char *model = NULL;
     char *backend = NULL;
+    char *tpmversion = NULL;
     virDomainTPMDefPtr def;
     xmlNodePtr save = ctxt->node;
     xmlNodePtr *backends = NULL;
@@ -12611,6 +12612,20 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
         goto error;
     }
 
+    tpmversion = virXMLPropString(backends[0], "tpmversion");
+    if (!tpmversion || STREQ(tpmversion, "1.2")) {
+        def->tpmversion = VIR_DOMAIN_TPM_VERSION_1_2;
+        /* only TIS available for emulator */
+        if (def->type == VIR_DOMAIN_TPM_TYPE_EMULATOR)
+            def->model = VIR_DOMAIN_TPM_MODEL_TIS;
+    } else if (STREQ(tpmversion, "2.0") || STREQ(tpmversion, "2")) {
+        def->tpmversion = VIR_DOMAIN_TPM_VERSION_2;
+    } else {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported TPM version '%s'"),
+                       tpmversion);
+    }
+
     switch (def->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         path = virXPathString("string(./backend/device/@path)", ctxt);
@@ -12635,6 +12650,7 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
     VIR_FREE(model);
     VIR_FREE(backend);
     VIR_FREE(backends);
+    VIR_FREE(tpmversion);
     ctxt->node = save;
     return def;
 
@@ -24798,6 +24814,8 @@ virDomainTPMDefFormat(virBufferPtr buf,
     virBufferAdjustIndent(buf, 2);
     virBufferAsprintf(buf, "<backend type='%s'",
                       virDomainTPMBackendTypeToString(def->type));
+    if (def->tpmversion == VIR_DOMAIN_TPM_VERSION_2)
+        virBufferAddLit(buf, " tpmversion='2'");
     virBufferAdjustIndent(buf, 2);
 
     switch (def->type) {
@@ -29426,6 +29444,22 @@ virDomainCheckTPMChanges(virDomainDefPtr def,
         if (newDef->tpm->type != def->tpm->type) {
             /* type changed */
             virDomainTPMDelete(def);
+        } else {
+            switch (def->tpm->type) {
+            case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+                if (def->tpm->tpmversion != newDef->tpm->tpmversion) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                   _("The version of the TPM cannot "
+                                   "be changed; the TPM must be removed "
+                                   "from the VM and a new TPM added; "
+                                   "Note: all secrets will be lost"));
+                    ret = -1;
+                }
+                break;
+            case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+            case VIR_DOMAIN_TPM_TYPE_LAST:
+                break;
+            }
         }
     }
 
