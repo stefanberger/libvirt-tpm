@@ -869,6 +869,11 @@ VIR_ENUM_IMPL(virDomainTPMBackend, VIR_DOMAIN_TPM_TYPE_LAST,
               "passthrough",
               "emulator")
 
+VIR_ENUM_IMPL(virDomainTPMVersion, VIR_DOMAIN_TPM_VERSION_LAST,
+              "default",
+              "1.2",
+              "2.0")
+
 VIR_ENUM_IMPL(virDomainIOMMUModel, VIR_DOMAIN_IOMMU_MODEL_LAST,
               "intel")
 
@@ -12772,7 +12777,7 @@ virDomainSmartcardDefParseXML(virDomainXMLOptionPtr xmlopt,
  * or like this:
  *
  * <tpm model='tpm-tis'>
- *   <backend type='emulator'/>
+ *   <backend type='emulator' version='2'/>
  * </tpm>
  */
 static virDomainTPMDefPtr
@@ -12785,6 +12790,7 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
     char *path = NULL;
     char *model = NULL;
     char *backend = NULL;
+    char *version = NULL;
     virDomainTPMDefPtr def;
     xmlNodePtr save = ctxt->node;
     xmlNodePtr *backends = NULL;
@@ -12831,6 +12837,18 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
         goto error;
     }
 
+    version = virXMLPropString(backends[0], "version");
+    if (!version) {
+        def->version = VIR_DOMAIN_TPM_VERSION_DEFAULT;
+    } else {
+        if ((def->version = virDomainTPMVersionTypeFromString(version)) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported TPM version '%s'"),
+                           version);
+            goto error;
+        }
+    }
+
     switch (def->type) {
     case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
         path = virXPathString("string(./backend/device/@path)", ctxt);
@@ -12855,6 +12873,7 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
     VIR_FREE(model);
     VIR_FREE(backend);
     VIR_FREE(backends);
+    VIR_FREE(version);
     ctxt->node = save;
     return def;
 
@@ -22070,6 +22089,12 @@ virDomainTPMDefCheckABIStability(virDomainTPMDefPtr src,
         return false;
     }
 
+    if (src->version != dst->version) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Target TPM version doesn't match source"));
+        return false;
+    }
+
     return virDomainDeviceInfoCheckABIStability(&src->info, &dst->info);
 }
 
@@ -25236,7 +25261,8 @@ virDomainTPMDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "</backend>\n");
         break;
     case VIR_DOMAIN_TPM_TYPE_EMULATOR:
-        virBufferAddLit(buf, "/>\n");
+        virBufferAsprintf(buf, " version='%s'/>\n",
+                          virDomainTPMVersionTypeToString(def->version));
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
