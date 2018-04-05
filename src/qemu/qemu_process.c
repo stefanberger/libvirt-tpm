@@ -6318,6 +6318,10 @@ qemuProcessLaunch(virConnectPtr conn,
     if (qemuProcessSetupEmulator(vm) < 0)
         goto cleanup;
 
+    VIR_DEBUG("Setting cgroup for external devices (if required)");
+    if (qemuSetupCgroupForExtDevices(vm, driver) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Setting up resctrl");
     if (qemuProcessResctrlCreate(driver, vm) < 0)
         goto cleanup;
