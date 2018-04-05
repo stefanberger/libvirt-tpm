@@ -1245,6 +1245,38 @@ virCgroupAddMachineTask(virCgroupPtr group, pid_t pid)
     return virCgroupAddTaskInternal(group, pid, true);
 }
 
+/**
+ * virCgroupAddProc:
+ *
+ * @group: The cgroup to add a process to
+ * @pid: The pid of the process to add
+ *
+ * Returns: 0 on success, -1 on error
+ */
+int
+virCgroupAddProc(virCgroupPtr group, pid_t pid)
+{
+    int ret = -1;
+    size_t i;
+
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+        /* Skip over controllers not mounted */
+        if (!group->controllers[i].mountPoint)
+            continue;
+
+        /* We must never add tasks in systemd's hierarchy */
+        if (i == VIR_CGROUP_CONTROLLER_SYSTEMD)
+            continue;
+
+        if (virCgroupSetValueU64(group, i, "cgroup.procs", pid) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    return ret;
+}
+
 
 /**
  * virCgroupAddTaskController:
@@ -4290,6 +4322,16 @@ virCgroupAddTask(virCgroupPtr group ATTRIBUTE_UNUSED,
 int
 virCgroupAddMachineTask(virCgroupPtr group ATTRIBUTE_UNUSED,
                         pid_t pid ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENXIO, "%s",
+                         _("Control groups not supported on this platform"));
+    return -1;
+}
+
+
+int
+virCgroupAddProc(virCgroupPtr group ATTRIBUTE_UNUSED,
+                 pid_t pid ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",
                          _("Control groups not supported on this platform"));

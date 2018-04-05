@@ -39,6 +39,7 @@
 #include "virlog.h"
 #include "virtpm.h"
 #include "virutil.h"
+#include "virpidfile.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -352,6 +353,25 @@ int virTPMEmulatorInitPaths(virDomainTPMDefPtr tpm,
 }
 
 /*
+ * virTPMCreatePidfileName
+ */
+static char *virTPMCreatePidfileName(const char *swtpmStateDir,
+                                     const char *vmname)
+{
+    char *pidfile = NULL;
+    char *devname = NULL;
+
+    if (virAsprintf(&devname, "%s-swtpm", vmname) < 0)
+        return NULL;
+
+    pidfile = virPidFileBuildPath(swtpmStateDir, devname);
+
+    VIR_FREE(devname);
+
+    return pidfile;
+}
+
+/*
  * virTPMEmulatorPrepareHost:
  *
  * @tpm: tpm definition
@@ -408,6 +428,10 @@ int virTPMEmulatorPrepareHost(virDomainTPMDefPtr tpm,
           virTPMCreateEmulatorSocket(swtpmStateDir, vmname)))
         goto cleanup;
     tpm->data.emulator.source.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+
+    if (!(tpm->data.emulator.pidfile =
+           virTPMCreatePidfileName(swtpmStateDir, vmname)))
+        goto cleanup;
 
     ret = 0;
 
@@ -559,6 +583,9 @@ virTPMEmulatorBuildCommand(virDomainTPMDefPtr tpm, const char *vmname,
         break;
     }
 
+    virCommandAddArg(cmd, "--pid");
+    virCommandAddArgFormat(cmd, "file=%s", tpm->data.emulator.pidfile);
+
     return cmd;
 
  error:
@@ -586,6 +613,7 @@ virTPMEmulatorStop(const char *swtpmStateDir, const char *vmname)
     virCommandPtr cmd;
     char *pathname;
     char *errbuf = NULL;
+    char *pidfile;
 
     if (virTPMEmulatorInit() < 0)
         return;
@@ -614,6 +642,11 @@ virTPMEmulatorStop(const char *swtpmStateDir, const char *vmname)
     unlink(pathname);
 
  cleanup:
+    /* clean up the PID file */
+    if ((pidfile = virTPMCreatePidfileName(swtpmStateDir, vmname))) {
+        unlink(pidfile);
+        VIR_FREE(pidfile);
+    }
     VIR_FREE(pathname);
     VIR_FREE(errbuf);
 }

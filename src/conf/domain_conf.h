@@ -1309,6 +1309,7 @@ struct _virDomainTPMDef {
             virDomainChrSourceDef source;
             char *storagepath;
             char *logfile;
+            char *pidfile;
         } emulator;
     } data;
 };

@@ -69,6 +69,7 @@ int qemuSetupCgroupVcpuBW(virCgroupPtr cgroup,
                           long long quota);
 int qemuSetupCgroupCpusetCpus(virCgroupPtr cgroup, virBitmapPtr cpumask);
 int qemuSetupGlobalCpuCgroup(virDomainObjPtr vm);
+int qemuSetupCgroupForExtDevices(virDomainObjPtr vm);
 int qemuRemoveCgroup(virDomainObjPtr vm);
 
 typedef struct _qemuCgroupEmulatorAllNodesData qemuCgroupEmulatorAllNodesData;

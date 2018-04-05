@@ -37,6 +37,7 @@
 #include "virtypedparam.h"
 #include "virnuma.h"
 #include "virsystemd.h"
+#include "virpidfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -1101,6 +1102,58 @@ qemuSetupCgroupCpusetCpus(virCgroupPtr cgroup,
     ret = 0;
  cleanup:
     VIR_FREE(new_cpus);
+    return ret;
+}
+
+
+int
+qemuSetupCgroupForExtDevices(virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainTPMDefPtr tpm = vm->def->tpm;
+    virCgroupPtr cgroup_temp = NULL;
+    pid_t pid;
+    int ret = -1;
+
+    if (priv->cgroup == NULL)
+        return 0; /* Not supported, so claim success */
+
+    /*
+     * If CPU cgroup controller is not initialized here, then we need
+     * neither period nor quota settings.  And if CPUSET controller is
+     * not initialized either, then there's nothing to do anyway.
+     */
+    if (!virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPU) &&
+        !virCgroupHasController(priv->cgroup, VIR_CGROUP_CONTROLLER_CPUSET))
+        return 0;
+
+    if (virCgroupNewThread(priv->cgroup, VIR_CGROUP_THREAD_EMULATOR, 0,
+                           false, &cgroup_temp) < 0)
+        goto cleanup;
+
+    if (tpm) {
+        switch (tpm->type) {
+        case VIR_DOMAIN_TPM_TYPE_EMULATOR:
+            if (virPidFileReadPath(tpm->data.emulator.pidfile, &pid) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Could not read swtpm's pidfile %s"),
+                               tpm->data.emulator.pidfile);
+                goto cleanup;
+            }
+            if (virCgroupAddProc(cgroup_temp, pid) < 0)
+                goto cleanup;
+            break;
+        case VIR_DOMAIN_TPM_TYPE_PASSTHROUGH:
+        case VIR_DOMAIN_TPM_TYPE_LAST:
+            break;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&cgroup_temp);
+
     return ret;
 }
 

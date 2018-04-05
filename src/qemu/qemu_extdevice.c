@@ -128,6 +128,9 @@ qemuExtTPMStartEmulator(virQEMUDriverPtr driver,
     char *errbuf = NULL;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
     virDomainTPMDefPtr tpm = def->tpm;
+    char *pidfiledata = NULL;
+    int timeout;
+    int len;
 
     /* stop any left-over TPM emulator for this VM */
     virTPMEmulatorStop(cfg->swtpmStateDir, def->name);
@@ -169,6 +172,22 @@ qemuExtTPMStartEmulator(virQEMUDriverPtr driver,
         ret = -1;
         goto error;
     }
+
+    /* check that the swtpm has written its pid into the file */
+    timeout = 1000; /* ms */
+    while  ((len = virFileReadHeaderQuiet(tpm->data.emulator.pidfile,
+                                          10, &pidfiledata)) <= 0) {
+        if (len == 0 && timeout > 0) {
+            timeout -= 50;
+            usleep(50 * 1000);
+            continue;
+        }
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("swtpm did not write pidfile '%s'"),
+                       tpm->data.emulator.pidfile);
+        goto error;
+    }
+    VIR_FREE(pidfiledata);
 
     ret = 0;
 

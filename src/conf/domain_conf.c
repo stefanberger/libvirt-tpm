@@ -2620,6 +2620,7 @@ void virDomainTPMDefFree(virDomainTPMDefPtr def)
         VIR_FREE(def->data.emulator.source.data.nix.path);
         VIR_FREE(def->data.emulator.storagepath);
         VIR_FREE(def->data.emulator.logfile);
+        VIR_FREE(def->data.emulator.pidfile);
         break;
     case VIR_DOMAIN_TPM_TYPE_LAST:
         break;
