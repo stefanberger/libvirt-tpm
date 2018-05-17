@@ -9476,11 +9476,11 @@ qemuBuildDomainLoaderCommandLine(virCommandPtr cmd,
 
 
 static char *
-qemuBuildTPMDevStr(const virDomainDef *def,
+qemuBuildTPMDevStr(virDomainDef *def,
                    virQEMUCapsPtr qemuCaps)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    const virDomainTPMDef *tpm = def->tpm;
+    virDomainTPMDef *tpm = def->tpm;
     const char *model = virDomainTPMModelTypeToString(tpm->model);
     virQEMUCapsFlags flag;
 
@@ -9492,6 +9492,8 @@ qemuBuildTPMDevStr(const virDomainDef *def,
         flag = QEMU_CAPS_DEVICE_TPM_CRB;
         break;
     case VIR_DOMAIN_TPM_MODEL_SPAPR:
+        flag = QEMU_CAPS_DEVICE_TPM_SPAPR;
+        break;
     case VIR_DOMAIN_TPM_MODEL_LAST:
     default:
         virReportEnumRangeError(virDomainTPMModel, tpm->model);
@@ -9508,6 +9510,9 @@ qemuBuildTPMDevStr(const virDomainDef *def,
 
     virBufferAsprintf(&buf, "%s,tpmdev=tpm-%s,id=%s",
                       model, tpm->info.alias, tpm->info.alias);
+
+    if (qemuBuildDeviceAddressStr(&buf, def, &tpm->info, qemuCaps) < 0)
+        goto error;
 
     if (virBufferCheckError(&buf) < 0)
         goto error;
@@ -9633,7 +9638,7 @@ qemuBuildTPMBackendStr(const virDomainDef *def,
 
 static int
 qemuBuildTPMCommandLine(virCommandPtr cmd,
-                        const virDomainDef *def,
+                        virDomainDef *def,
                         virQEMUCapsPtr qemuCaps)
 {
     char *optstr;
