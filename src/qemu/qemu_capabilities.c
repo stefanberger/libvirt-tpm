@@ -536,6 +536,7 @@ VIR_ENUM_IMPL(virQEMUCaps,
 
               /* 335 */
               "bochs-display",
+              "tpm-spapr",
     );
 
 
@@ -1125,6 +1126,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "virtio-serial-pci-non-transitional", QEMU_CAPS_VIRTIO_PCI_TRANSITIONAL },
     { "max-x86_64-cpu", QEMU_CAPS_X86_MAX_CPU },
     { "bochs-display", QEMU_CAPS_DEVICE_BOCHS_DISPLAY },
+    { "tpm-spapr", QEMU_CAPS_DEVICE_TPM_SPAPR },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsVirtioBalloon[] = {
@@ -2639,6 +2641,10 @@ const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_MODEL_CRB,
         .caps = QEMU_CAPS_DEVICE_TPM_CRB,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_SPAPR,
+        .caps = QEMU_CAPS_DEVICE_TPM_SPAPR,
     },
 };
 

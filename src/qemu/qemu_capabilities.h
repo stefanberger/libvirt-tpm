@@ -517,6 +517,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
 
     /* 335 */
     QEMU_CAPS_DEVICE_BOCHS_DISPLAY, /* -device bochs-display */
+    QEMU_CAPS_DEVICE_TPM_SPAPR, /* -device tpm-spapr */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
