@@ -478,6 +478,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     /* 305 */
     QEMU_CAPS_DEVICE_VHOST_VSOCK, /* -device vhost-vsock-* */
     QEMU_CAPS_DEVICE_TPM_EMULATOR, /* -tpmdev emulator */
+    QEMU_CAPS_DEVICE_TPM_SPAPR, /* -device tpm-spapr */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
