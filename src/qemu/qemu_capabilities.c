@@ -500,6 +500,7 @@ VIR_ENUM_IMPL(virQEMUCaps, QEMU_CAPS_LAST,
 
               /* 310 */
               "sev-guest",
+              "tpm-spapr",
     );
 
 
@@ -2490,6 +2491,10 @@ const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_MODEL_CRB,
         .caps = QEMU_CAPS_DEVICE_TPM_CRB,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_SPAPR,
+        .caps = QEMU_CAPS_DEVICE_TPM_SPAPR,
     },
 };
 

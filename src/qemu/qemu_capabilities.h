@@ -484,6 +484,7 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
 
     /* 310 */
     QEMU_CAPS_SEV_GUEST, /* -object sev-guest,... */
+    QEMU_CAPS_DEVICE_TPM_SPAPR, /* -device tpm-spapr */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
