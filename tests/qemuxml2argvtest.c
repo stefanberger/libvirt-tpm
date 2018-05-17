@@ -621,6 +621,7 @@ mymain(void)
     char *fakerootdir;
     bool skipLegacyCPUs = false;
     char *capslatest_x86_64 = NULL;
+    char *capslatest_ppc64 = NULL;
 
     if (VIR_STRDUP_QUIET(fakerootdir, FAKEROOTDIRTEMPLATE) < 0) {
         fprintf(stderr, "Out of memory\n");
@@ -692,6 +693,11 @@ mymain(void)
 
     VIR_TEST_VERBOSE("\nlatest caps x86_64: %s\n", capslatest_x86_64);
 
+    if (!(capslatest_ppc64 = testQemuGetLatestCapsForArch(abs_srcdir "/qemucapabilitiesdata",
+                                                          "ppc64", "xml")))
+        return EXIT_FAILURE;
+
+    VIR_TEST_VERBOSE("\nlatest caps ppc64: %s\n", capslatest_ppc64);
 
 /**
  * The following set of macros allows testing of XML -> argv conversion with a
@@ -740,6 +746,10 @@ mymain(void)
 # define DO_TEST_CAPS_LATEST(name) \
     DO_TEST_CAPS_INTERNAL(name, "x86_64-latest", NULL, 0, 0, "x86_64", \
                           capslatest_x86_64)
+
+# define DO_TEST_CAPS_LATEST_PPC64(name) \
+    DO_TEST_CAPS_INTERNAL(name, "ppc64-latest", NULL, 0, 0, "ppc64", \
+                          capslatest_ppc64)
 
 /**
  * The following test macros should be used only in cases when the tests require
@@ -2048,6 +2058,7 @@ mymain(void)
                         QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
     DO_TEST_CAPS_LATEST("tpm-emulator");
     DO_TEST_CAPS_LATEST("tpm-emulator-tpm2");
+    DO_TEST_CAPS_LATEST_PPC64("tpm-emulator-spapr");
 
     DO_TEST_PARSE_ERROR("pci-domain-invalid", NONE);
     DO_TEST_PARSE_ERROR("pci-bus-invalid", NONE);
@@ -2891,6 +2902,7 @@ mymain(void)
     qemuTestDriverFree(&driver);
     VIR_FREE(fakerootdir);
     VIR_FREE(capslatest_x86_64);
+    VIR_FREE(capslatest_ppc64);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
