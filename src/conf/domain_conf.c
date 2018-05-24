@@ -1127,6 +1127,7 @@ VIR_ENUM_IMPL(virDomainTPMModel,
               VIR_DOMAIN_TPM_MODEL_LAST,
               "tpm-tis",
               "tpm-crb",
+              "tpm-spapr",
 );
 
 VIR_ENUM_IMPL(virDomainTPMBackend,
@@ -13242,7 +13243,8 @@ static virDomainTPMDefPtr
 virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
                         xmlNodePtr node,
                         xmlXPathContextPtr ctxt,
-                        unsigned int flags)
+                        unsigned int flags,
+                        virArch arch)
 {
     virDomainTPMDefPtr def;
     VIR_XPATH_NODE_AUTORESTORE(ctxt);
@@ -13258,11 +13260,17 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
         return NULL;
 
     model = virXMLPropString(node, "model");
-    if (model != NULL &&
-        (def->model = virDomainTPMModelTypeFromString(model)) < 0) {
-        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+    if (model != NULL) {
+        if ((def->model = virDomainTPMModelTypeFromString(model)) < 0) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("Unknown TPM frontend model '%s'"), model);
-        goto error;
+            goto error;
+        }
+    } else {
+        if (ARCH_IS_PPC64(arch))
+            def->model = VIR_DOMAIN_TPM_MODEL_SPAPR;
+        else
+            def->model = VIR_DOMAIN_TPM_MODEL_TIS;
     }
 
     ctxt->node = node;
@@ -16639,7 +16647,8 @@ virDomainDeviceDefParse(const char *xmlStr,
             return NULL;
         break;
     case VIR_DOMAIN_DEVICE_TPM:
-        if (!(dev->data.tpm = virDomainTPMDefParseXML(xmlopt, node, ctxt, flags)))
+        if (!(dev->data.tpm = virDomainTPMDefParseXML(xmlopt, node, ctxt, flags,
+                                                      def->os.arch)))
             return NULL;
         break;
     case VIR_DOMAIN_DEVICE_PANIC:
@@ -21464,7 +21473,8 @@ virDomainDefParseXML(xmlDocPtr xml,
     }
 
     if (n > 0) {
-        if (!(def->tpm = virDomainTPMDefParseXML(xmlopt, nodes[0], ctxt, flags)))
+        if (!(def->tpm = virDomainTPMDefParseXML(xmlopt, nodes[0], ctxt, flags,
+                                                 def->os.arch)))
             goto error;
     }
     VIR_FREE(nodes);

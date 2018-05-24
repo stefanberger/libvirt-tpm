@@ -8508,7 +8508,9 @@ qemu-kvm -net nic,model=? /dev/null
         <p>
           The <code>model</code> attribute specifies what device
           model QEMU provides to the guest. If no model name is provided,
-          <code>tpm-tis</code> will automatically be chosen.
+          <code>tpm-tis</code> will automatically be chosen for non-ppc64
+          architectures. For ppc64/pseries guests, <code>tpm-spapr</code>
+          is the default.
           <span class="since">Since 4.4.0</span>, another available choice
           is the <code>tpm-crb</code>, which should only be used when the
           backend device is a TPM 2.0.
