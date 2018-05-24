@@ -4364,12 +4364,16 @@
           <choice>
             <value>tpm-tis</value>
             <value>tpm-crb</value>
+            <value>tpm-spapr</value>
           </choice>
         </attribute>
       </optional>
       <ref name="tpm-backend"/>
       <optional>
         <ref name="alias"/>
+      </optional>
+      <optional>
+        <ref name="address"/>
       </optional>
     </element>
   </define>

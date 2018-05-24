@@ -7798,9 +7798,10 @@ qemuDomainDeviceDefValidateTPM(virDomainTPMDef *tpm,
 
     switch (tpm->version) {
     case VIR_DOMAIN_TPM_VERSION_1_2:
-        /* only TIS available for emulator */
+        /* only TIS available for emulator (non-ppc64 case) */
         if (tpm->type == VIR_DOMAIN_TPM_TYPE_EMULATOR &&
-            tpm->model != VIR_DOMAIN_TPM_MODEL_TIS) {
+            tpm->model != VIR_DOMAIN_TPM_MODEL_TIS &&
+            !ARCH_IS_PPC64(def->os.arch)) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("Unsupported interface %s for TPM 1.2"),
                            virDomainTPMModelTypeToString(tpm->model));
@@ -7835,6 +7836,7 @@ qemuDomainDeviceDefValidateTPM(virDomainTPMDef *tpm,
     case VIR_DOMAIN_TPM_MODEL_CRB:
         flag = QEMU_CAPS_DEVICE_TPM_CRB;
         break;
+    case VIR_DOMAIN_TPM_MODEL_SPAPR:
     case VIR_DOMAIN_TPM_MODEL_LAST:
     default:
         virReportEnumRangeError(virDomainTPMModel, tpm->model);
