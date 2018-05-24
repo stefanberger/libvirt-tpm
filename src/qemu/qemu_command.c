@@ -9511,6 +9511,7 @@ qemuBuildTPMDevStr(const virDomainDef *def,
     case VIR_DOMAIN_TPM_MODEL_CRB:
         flag = QEMU_CAPS_DEVICE_TPM_CRB;
         break;
+    case VIR_DOMAIN_TPM_MODEL_SPAPR:
     case VIR_DOMAIN_TPM_MODEL_LAST:
     default:
         virReportEnumRangeError(virDomainTPMModel, tpm->model);
