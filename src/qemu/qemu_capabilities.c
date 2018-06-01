@@ -2853,9 +2853,13 @@ virQEMUCapsNewHostCPUModel(void)
 
 void
 virQEMUCapsFreeHostCPUModel(virQEMUCapsPtr qemuCaps,
+                            virArch hostArch,
                             virDomainVirtType type)
 {
     virQEMUCapsHostCPUDataPtr cpuData = virQEMUCapsGetHostCPUData(qemuCaps, type);
+
+    if (!virQEMUCapsGuestIsNative(hostArch, qemuCaps->arch))
+        return;
 
     virQEMUCapsHostCPUDataClearModels(cpuData);
 }
