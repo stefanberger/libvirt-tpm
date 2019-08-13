@@ -150,6 +150,7 @@
   <flag name='blockdev-del'/>
   <flag name='vhost-vsock'/>
   <flag name='chardev-fd-pass'/>
+  <flag name='tpm-emulator'/>
   <flag name='machine.pseries.cap-hpt-max-page-size'/>
   <flag name='machine.pseries.cap-htm'/>
   <flag name='usb-storage.werror'/>
@@ -169,6 +170,7 @@
   <flag name='bitmap-merge'/>
   <flag name='nbd-bitmap'/>
   <flag name='bochs-display'/>
+  <flag name='tpm-spapr'/>
   <version>4000000</version>
   <kvmVersion>0</kvmVersion>
   <microcodeVersion>42900758</microcodeVersion>

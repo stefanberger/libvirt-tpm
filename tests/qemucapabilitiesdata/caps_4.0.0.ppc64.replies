@@ -3177,6 +3177,10 @@
       "parent": "vhost-scsi-common"
     },
     {
+      "name": "tpm-emulator",
+      "parent": "tpm-backend"
+    },
+    {
       "name": "virtex-ml507-machine",
       "parent": "machine"
     },
@@ -6184,6 +6188,11 @@
       "name": "kvm-shadow-mem",
       "description": "KVM shadow MMU size",
       "type": "int"
+    },
+    {
+      "name": "tpm-emulator",
+      "description": "Foo",
+      "parent": "tpm-backend"
     },
     {
       "name": "cap-hpt-max-page-size",
@@ -13680,7 +13689,8 @@
       "meta-type": "enum",
       "values": [
         "tpm-tis",
-        "tpm-crb"
+        "tpm-crb",
+        "tpm-spapr"
       ]
     },
     {
