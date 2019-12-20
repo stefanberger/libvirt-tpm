@@ -559,6 +559,7 @@ VIR_ENUM_IMPL(virQEMUCaps,
               "i8042",
               "rng-builtin",
               "virtio-net.failover",
+              "tpm-spapr",
     );
 
 
@@ -1275,6 +1276,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "max-arm-cpu", QEMU_CAPS_ARM_MAX_CPU },
     { "i8042", QEMU_CAPS_DEVICE_I8042 },
     { "rng-builtin", QEMU_CAPS_OBJECT_RNG_BUILTIN },
+    { "tpm-spapr", QEMU_CAPS_DEVICE_TPM_SPAPR },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsVirtioBalloon[] = {
@@ -3027,6 +3029,10 @@ const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_MODEL_CRB,
         .caps = QEMU_CAPS_DEVICE_TPM_CRB,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_SPAPR,
+        .caps = QEMU_CAPS_DEVICE_TPM_SPAPR,
     },
 };
 
