@@ -553,6 +553,7 @@ VIR_ENUM_IMPL(virQEMUCaps,
               "blockdev-file-dynamic-auto-read-only",
               "savevm-monitor-nodes",
               "drive-nvme",
+              "tpm-spapr",
     );
 
 
@@ -1244,6 +1245,7 @@ struct virQEMUCapsStringFlags virQEMUCapsObjectTypes[] = {
     { "vhost-user-vga", QEMU_CAPS_DEVICE_VHOST_USER_VGA },
     { "ramfb", QEMU_CAPS_DEVICE_RAMFB },
     { "max-arm-cpu", QEMU_CAPS_ARM_MAX_CPU },
+    { "tpm-spapr", QEMU_CAPS_DEVICE_TPM_SPAPR },
 };
 
 static struct virQEMUCapsStringFlags virQEMUCapsDevicePropsVirtioBalloon[] = {
@@ -2890,6 +2892,10 @@ const struct tpmTypeToCaps virQEMUCapsTPMModelsToCaps[] = {
     {
         .type = VIR_DOMAIN_TPM_MODEL_CRB,
         .caps = QEMU_CAPS_DEVICE_TPM_CRB,
+    },
+    {
+        .type = VIR_DOMAIN_TPM_MODEL_SPAPR,
+        .caps = QEMU_CAPS_DEVICE_TPM_SPAPR,
     },
 };
 
