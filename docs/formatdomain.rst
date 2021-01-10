@@ -7056,6 +7056,14 @@ Example: usage of the TPM Emulator
    This attribute only works with the ``emulator`` backend. The accepted values
    are ``yes`` and ``no``. :since:`Since 7.0.0`
 
+``hlk_compliance``
+   The ``hlk_compliance`` attribute changes the behavior of 'swtpm' in such a
+   way that more Microsoft HLK tests pass than would otherwise. Which HLK version
+   a particular version of swtpm/libtpms is compliant to depends on the version
+   of libtpms and HLK. By default the value is ``no``. This attribute only works
+   with the ``emulator`` backend. The accepted values are ``yes`` and ``no``.
+   :since:`Since 7.1.0`
+
 ``encryption``
    The ``encryption`` element allows the state of a TPM emulator to be
    encrypted. The ``secret`` must reference a secret object that holds the

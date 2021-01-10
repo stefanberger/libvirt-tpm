@@ -4816,6 +4816,14 @@
               </choice>
            </attribute>
           </optional>
+          <optional>
+            <attribute name="hlk_compliance">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+           </attribute>
+          </optional>
         </group>
       </choice>
       <optional>
