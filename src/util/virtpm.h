@@ -32,6 +32,7 @@ bool virTPMSwtpmSetupCapsGet(unsigned int cap);
 
 typedef enum {
     VIR_TPM_SWTPM_FEATURE_CMDARG_PWD_FD,
+    VIR_TPM_SWTPM_FEATURE_FLAG_HLK_COMPLIANCE,
 
     VIR_TPM_SWTPM_FEATURE_LAST
 } virTPMSwtpmFeature;

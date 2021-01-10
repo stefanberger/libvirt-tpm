@@ -40,6 +40,7 @@ VIR_LOG_INIT("util.tpm");
 VIR_ENUM_IMPL(virTPMSwtpmFeature,
               VIR_TPM_SWTPM_FEATURE_LAST,
               "cmdarg-pwd-fd",
+              "flag-hlk-compliance",
 );
 
 VIR_ENUM_IMPL(virTPMSwtpmSetupFeature,
