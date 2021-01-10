@@ -619,6 +619,19 @@ qemuTPMEmulatorBuildCommand(virDomainTPMDefPtr tpm,
         migpwdfile_fd = -1;
     }
 
+    if (tpm->data.emulator.hlk_compliance) {
+        if (!virTPMSwtpmCapsGet(
+                VIR_TPM_SWTPM_FEATURE_FLAG_HLK_COMPLIANCE)) {
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                _("%s does not support the 'hlk-compliance' flag"),
+                swtpm);
+            goto error;
+        }
+        virCommandAddArgList(cmd,
+                             "--flags", "hlk-compliance", NULL);
+    }
+
+
     return g_steal_pointer(&cmd);
 
  error:
