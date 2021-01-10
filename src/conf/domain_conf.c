@@ -12278,6 +12278,7 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
     g_autofree char *version = NULL;
     g_autofree char *secretuuid = NULL;
     g_autofree char *persistent_state = NULL;
+    g_autofree char *hlk_compliance = NULL;
     g_autofree xmlNodePtr *backends = NULL;
 
     def = g_new0(virDomainTPMDef, 1);
@@ -12357,6 +12358,16 @@ virDomainTPMDefParseXML(virDomainXMLOptionPtr xmlopt,
                                     &def->data.emulator.persistent_state) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("Invalid persistent_state value, either 'yes' or 'no'"));
+                goto error;
+            }
+        }
+
+        hlk_compliance = virXMLPropString(backends[0], "hlk_compliance");
+        if (hlk_compliance) {
+            if (virStringParseYesNo(hlk_compliance,
+                                    &def->data.emulator.hlk_compliance) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Invalid hlk_compliance value, either 'yes' or 'no'"));
                 goto error;
             }
         }
@@ -26118,6 +26129,8 @@ virDomainTPMDefFormat(virBufferPtr buf,
                           virDomainTPMVersionTypeToString(def->version));
         if (def->data.emulator.persistent_state)
             virBufferAddLit(buf, " persistent_state='yes'");
+        if (def->data.emulator.hlk_compliance)
+            virBufferAddLit(buf, " hlk_compliance='yes'");
         if (def->data.emulator.hassecretuuid) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virBufferAddLit(buf, ">\n");
